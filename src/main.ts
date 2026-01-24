@@ -272,10 +272,63 @@ async function loadConfig(): Promise<void> {
 }
 
 // ============================================
-// MAIN
+// MAIN - Command Handler
 // ============================================
 
-// Export functions for use in code.js
+console.log('Figma Sync plugin loaded, command:', figma.command);
+
+// Handle commands from manifest.json
+if (figma.command === 'syncAll') {
+  console.log('Running syncAll...');
+  syncAll().then(() => {
+    console.log('syncAll complete');
+    figma.closePlugin();
+  }).catch((error) => {
+    console.error('syncAll failed:', error);
+    figma.closePlugin();
+  });
+} else if (figma.command === 'createVariables') {
+  console.log('Running createVariables...');
+  createVariables().then(() => {
+    console.log('createVariables complete');
+    figma.closePlugin();
+  }).catch((error) => {
+    console.error('createVariables failed:', error);
+    figma.closePlugin();
+  });
+} else if (figma.command === 'createComponents') {
+  console.log('Running createComponents...');
+  createComponents().then(() => {
+    console.log('createComponents complete');
+    figma.closePlugin();
+  }).catch((error) => {
+    console.error('createComponents failed:', error);
+    figma.closePlugin();
+  });
+} else if (figma.command === 'createWireframes') {
+  console.log('Running createWireframes...');
+  createWireframes().then(() => {
+    console.log('createWireframes complete');
+    figma.closePlugin();
+  }).catch((error) => {
+    console.error('createWireframes failed:', error);
+    figma.closePlugin();
+  });
+} else if (figma.command === 'loadConfig') {
+  console.log('Running loadConfig...');
+  loadConfig().then(() => {
+    console.log('loadConfig complete');
+    figma.closePlugin();
+  }).catch((error) => {
+    console.error('loadConfig failed:', error);
+    figma.closePlugin();
+  });
+} else {
+  console.log('Unknown command, closing plugin');
+  figma.closePlugin();
+}
+
+// Export functions for potential external use
 export {
   createVariables,
   createComponents,
