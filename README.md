@@ -80,7 +80,7 @@ const USER_CONFIG: Partial<PluginConfig> = {
 
 ### Example Configurations
 
-See `examples/dealapp.config.json` for a complete example.
+See `src/parsers/page-parser.ts` for page configuration examples.
 
 ## Development
 
@@ -149,7 +149,7 @@ Configuration (JSON)          →  Section Renderers (Code)  →  Generated Wire
 { contentSections: [              header-renderer              ┌─────────────────┐
     "header",            →        tabs-renderer         →      │ Header          │
     "tabs",                       table-renderer               │ Tabs            │
-    "entity-table"                                             │ Entity Table    │
+    "table"                                                    │ Data Table      │
   ]                                                            └─────────────────┘
 }
 ```
@@ -160,18 +160,16 @@ Pages can be defined in `src/parsers/page-parser.ts` using content sections:
 
 ```typescript
 {
-  name: 'Waterfall / Detail',
-  pagePath: 'app/waterfall/page.tsx',
-  state: 'Detail',
+  name: 'Orders / List',
+  pagePath: 'app/orders/page.tsx',
+  state: 'List',
   pageType: 'list',
   structure: {
     hasNavigation: true,
     contentSections: [
-      { type: 'header', title: 'Waterfall Distributions', subtitle: 'Calculate distributions' },
-      { type: 'project-selector', properties: { projectName: 'Oakwood Apartments' } },
-      { type: 'tabs', properties: { tabs: ['Summary', 'Detail'], activeIndex: 1 } },
-      { type: 'sales-input-card', title: 'Sale Proceeds' },
-      { type: 'contributions-table', properties: { headers: ['Entity', 'Total', 'Period 1'], rowCount: 4 } }
+      { type: 'header', title: 'Orders', subtitle: 'Manage customer orders' },
+      { type: 'tabs', properties: { tabs: ['All', 'Pending', 'Completed'], activeIndex: 0 } },
+      { type: 'table', properties: { headers: ['Order ID', 'Customer', 'Status', 'Total'], rowCount: 5 } }
     ]
   }
 }
@@ -202,20 +200,18 @@ Pages can be defined in `src/parsers/page-parser.ts` using content sections:
 | `wizard-navigation` | Back/Skip/Continue buttons | `showBack`, `showSkip`, `nextLabel` |
 | `preview-summary` | Summary card | `title`, `items: [{label, value}]` |
 
-**Domain-Specific Renderers:**
+**Additional Renderers:**
 
 | Section Type | Description | Properties |
 |--------------|-------------|------------|
-| `project-selector` | Project dropdown + configure | `projectName`, `showConfigureButton` |
-| `sales-input-card` | Sale proceeds input | `title` |
-| `contributions-table` | Entity × period grid | `title`, `headers`, `rowCount` |
-| `distributions-table` | Tier distribution table | `title`, `headers`, `rowCount` |
-| `entity-table` | Entities with add button | `title`, `headers`, `rowCount` |
-| `waterfall-tiers-table` | Tier configuration | `title`, `headers`, `rowCount` |
-| `summary-table` | Waterfall results | `title`, `headers`, `rowCount` |
+| `summary-table` | Results summary table | `title`, `headers`, `rowCount` |
 | `breadcrumb` | Breadcrumb navigation | `items: string[]` |
 | `avatar-header` | Header with avatar | `title`, `subtitle` |
 | `chart` | Chart placeholder | `title`, `width`, `height` |
+| `settings-form` | Settings card with table | `title` |
+| `dashboard-content` | Metrics + table + chart | - |
+
+You can also create domain-specific renderers for your app (see `section-renderers.ts` for examples).
 
 ### Adding Custom Renderers
 
@@ -277,29 +273,27 @@ git commit -m "Update figma-sync submodule"
 
 ### Wireframes
 
+Default wireframes include common page patterns:
+
 **Auth & Core:**
 - Auth / Login, Auth / Sign Up
 - Dashboard
 - Settings, Profile
 
-**Waterfall States:**
-- Waterfall / Loading
-- Waterfall / Not Signed In
-- Waterfall / No Organization
-- Waterfall / No Projects (Empty)
-- Waterfall / Summary
-- Waterfall / Detail
+**States:**
+- Loading spinner
+- Not signed in prompt
+- No organization prompt
+- Empty state
 
-**Project Configuration:**
-- Projects / Config / Details Tab
-- Projects / Config / Entities Tab
-- Projects / Config / Waterfall Tab
+**Configuration Pages:**
+- Tabbed config views (Details, Lists, Settings)
+- Form-based configuration
 
-**Project Setup Wizard:**
-- Step 1 - Sale Proceeds
-- Step 2 - Contributions
-- Step 3 - Review Entities
-- Step 4 - Waterfall Rules
+**Wizard Pages:**
+- Multi-step setup flows with progress indicator
+
+Customize pages in `src/parsers/page-parser.ts` using content sections.
 
 ## Mock Data System
 
