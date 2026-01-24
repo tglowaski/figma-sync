@@ -84,12 +84,22 @@ See `examples/dealapp.config.json` for a complete example.
 
 ## Development
 
+### Watch Mode
+
+For development, use watch mode which automatically rebuilds on file changes:
+
+```bash
+npm run watch
+```
+
+Then press **Cmd+Opt+P** in Figma to rerun the plugin with your changes.
+
 ### Available Scripts
 
 ```bash
+npm run watch      # Watch mode - auto-rebuild on changes
 npm run build      # Production build (minified)
 npm run build:dev  # Development build (with sourcemaps)
-npm run watch      # Watch mode for development
 npm run typecheck  # TypeScript type checking
 npm run clean      # Remove build artifacts
 ```
