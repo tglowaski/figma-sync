@@ -175,7 +175,7 @@ When suggesting changes, include specific file paths and line numbers:
 ```
 Update src/main.ts:22
   - Old: name: 'MyApp'
-  + New: name: 'DealApp'
+  + New: name: 'YourProjectName'
 ```
 
 ---

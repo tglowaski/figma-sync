@@ -313,12 +313,12 @@ After generating configuration, validate:
 
 ## Example Generated Config
 
-For DealApp (real estate investment platform):
+Example for an analytics platform:
 
 ```json
 {
-  "name": "DealApp",
-  "description": "Real Estate Investment Analytics Platform",
+  "name": "MyApp",
+  "description": "Your Application Description",
 
   "sources": {
     "tokens": "app/globals.css",
@@ -329,7 +329,7 @@ For DealApp (real estate investment platform):
 
   "variables": {
     "colorMode": ["light", "dark"],
-    "prefix": "DealApp",
+    "prefix": "MyApp",
     "collections": {
       "colors": true,
       "spacing": true,
@@ -363,13 +363,12 @@ For DealApp (real estate investment platform):
   },
 
   "branding": {
-    "logoText": "DealApp",
-    "tagline": "Real Estate Investment Analytics"
+    "logoText": "MyApp",
+    "tagline": "Your application tagline"
   },
 
   "navItems": [
     { "label": "Dashboard", "path": "/dashboard" },
-    { "label": "Waterfall", "path": "/waterfall" },
     { "label": "Projects", "path": "/projects" },
     { "label": "Settings", "path": "/settings" }
   ]

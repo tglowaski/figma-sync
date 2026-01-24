@@ -19,21 +19,21 @@ import { PluginConfig, mergeConfig, DEFAULT_CONFIG } from './config/schema';
 
 // Load configuration - can be overridden by project-specific config
 // For Figma plugins, configuration is embedded at build time
+// Users should modify these values for their own project
 const USER_CONFIG: Partial<PluginConfig> = {
   // Override with your project values:
-  name: 'DealApp',
-  prefix: 'DealApp',
-  branding: {
-    logoText: 'DealApp',
-    tagline: 'Real Estate Investment Analytics',
-    description: 'Real Estate Investment Analytics Platform'
-  },
-  navItems: [
-    { label: 'Dashboard', path: '/dashboard' },
-    { label: 'Waterfall', path: '/waterfall' },
-    { label: 'Projects', path: '/projects' },
-    { label: 'Settings', path: '/settings' }
-  ]
+  // name: 'MyApp',
+  // prefix: 'MyApp',
+  // branding: {
+  //   logoText: 'MyApp',
+  //   tagline: 'Your application tagline',
+  //   description: 'Your application description'
+  // },
+  // navItems: [
+  //   { label: 'Dashboard', path: '/dashboard' },
+  //   { label: 'Projects', path: '/projects' },
+  //   { label: 'Settings', path: '/settings' }
+  // ]
 };
 
 // Merge with defaults

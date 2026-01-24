@@ -1,6 +1,6 @@
 {
-  "name": "DealApp",
-  "description": "Real Estate Investment Analytics Platform",
+  "name": "MyApp",
+  "description": "Your application description",
 
   "sources": {
     "tokens": "app/globals.css",
@@ -11,7 +11,7 @@
 
   "variables": {
     "colorMode": ["light", "dark"],
-    "prefix": "DealApp",
+    "prefix": "MyApp",
     "collections": {
       "colors": true,
       "spacing": true,
@@ -45,8 +45,8 @@
   },
 
   "fonts": {
-    "primary": { "family": "Inter", "fallback": "Geist Sans" },
-    "mono": { "family": "JetBrains Mono", "fallback": "Geist Mono" }
+    "primary": { "family": "Inter", "fallback": "system-ui" },
+    "mono": { "family": "JetBrains Mono", "fallback": "monospace" }
   },
 
   "naming": {

@@ -264,10 +264,13 @@ export function generateWireframeConfigs(page: ParsedPage): WireframeConfig[] {
 // ============================================
 
 /**
- * Get predefined page configurations for DealApp
+ * Get predefined page configurations (generic defaults)
  *
  * Content sections map to registered section renderers in section-renderers.ts.
  * The generator will use config-driven generation when contentSections are defined.
+ *
+ * These are generic defaults that work for most web applications.
+ * Override or extend these for your specific project needs.
  */
 export function getPredefinedPages(): WireframeConfig[] {
   return [
@@ -323,10 +326,10 @@ export function getPredefinedPages(): WireframeConfig[] {
       }
     },
 
-    // Waterfall Page States - CONFIG-DRIVEN
+    // Common State Wireframes - CONFIG-DRIVEN
     {
-      name: 'Waterfall / Loading',
-      pagePath: 'app/waterfall/page.tsx',
+      name: 'Loading',
+      pagePath: 'app/loading.tsx',
       state: 'Loading',
       pageType: 'generic',
       structure: {
@@ -342,8 +345,8 @@ export function getPredefinedPages(): WireframeConfig[] {
       }
     },
     {
-      name: 'Waterfall / Not Signed In',
-      pagePath: 'app/waterfall/page.tsx',
+      name: 'Not Signed In',
+      pagePath: 'app/page.tsx',
       state: 'Not Signed In',
       pageType: 'generic',
       structure: {
@@ -361,8 +364,8 @@ export function getPredefinedPages(): WireframeConfig[] {
       }
     },
     {
-      name: 'Waterfall / No Organization',
-      pagePath: 'app/waterfall/page.tsx',
+      name: 'No Organization',
+      pagePath: 'app/page.tsx',
       state: 'No Organization',
       pageType: 'generic',
       structure: {
@@ -380,8 +383,8 @@ export function getPredefinedPages(): WireframeConfig[] {
       }
     },
     {
-      name: 'Waterfall / No Projects',
-      pagePath: 'app/waterfall/page.tsx',
+      name: 'Empty State',
+      pagePath: 'app/page.tsx',
       state: 'Empty State',
       pageType: 'generic',
       structure: {
@@ -394,13 +397,15 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasCards: true,
         hasMetrics: false,
         contentSections: [
-          { type: 'empty-state', title: 'No Projects Found', properties: { message: 'Create a project and complete setup to start calculating waterfall distributions.', actionLabel: 'Create Project' } }
+          { type: 'empty-state', title: 'No Items Found', properties: { message: 'Create an item to get started.', actionLabel: 'Create Item' } }
         ]
       }
     },
+
+    // List Page with Tabs
     {
-      name: 'Waterfall / Summary',
-      pagePath: 'app/waterfall/page.tsx',
+      name: 'List / Summary',
+      pagePath: 'app/list/page.tsx',
       state: 'Summary',
       pageType: 'list',
       structure: {
@@ -413,16 +418,15 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasCards: true,
         hasMetrics: false,
         contentSections: [
-          { type: 'header', title: 'Waterfall Distributions', subtitle: 'Calculate and analyze waterfall distributions' },
-          { type: 'project-selector', properties: { projectName: 'Oakwood Apartments' } },
+          { type: 'header', title: 'Item List', subtitle: 'View and manage your items' },
           { type: 'tabs', properties: { tabs: ['Summary', 'Detail'], activeIndex: 0 } },
-          { type: 'summary-table', title: 'Distribution Summary', properties: { headers: ['Entity', 'Contribution', 'Distribution', 'IRR', 'Multiple'], rowCount: 6 } }
+          { type: 'summary-table', title: 'Summary', properties: { headers: ['Name', 'Status', 'Date', 'Value'], rowCount: 6 } }
         ]
       }
     },
     {
-      name: 'Waterfall / Detail',
-      pagePath: 'app/waterfall/page.tsx',
+      name: 'List / Detail',
+      pagePath: 'app/list/page.tsx',
       state: 'Detail',
       pageType: 'list',
       structure: {
@@ -435,12 +439,9 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasCards: true,
         hasMetrics: false,
         contentSections: [
-          { type: 'header', title: 'Waterfall Distributions', subtitle: 'Calculate and analyze waterfall distributions' },
-          { type: 'project-selector', properties: { projectName: 'Oakwood Apartments' } },
+          { type: 'header', title: 'Item List', subtitle: 'View and manage your items' },
           { type: 'tabs', properties: { tabs: ['Summary', 'Detail'], activeIndex: 1 } },
-          { type: 'sales-input-card', title: 'Sale Proceeds' },
-          { type: 'contributions-table', title: 'Capital Contributions', properties: { headers: ['Entity', 'Total', 'Period 1', 'Period 2', 'Period 3'], rowCount: 4 } },
-          { type: 'distributions-table', title: 'Distributions by Tier', properties: { headers: ['Tier', 'Entity', 'IRR', 'Amount', 'Cumulative'], rowCount: 6 } }
+          { type: 'detail-table', title: 'Details', properties: { headers: ['Field', 'Value', 'Status', 'Actions'], rowCount: 6 } }
         ]
       }
     },
@@ -461,20 +462,20 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasCards: true,
         hasMetrics: false,
         contentSections: [
-          { type: 'back-header', title: 'Oakwood Apartments', subtitle: 'Configure project details and entities' },
-          { type: 'tabs', properties: { tabs: ['Project Details', 'Entities', 'Waterfall Tiers'], activeIndex: 0 } },
+          { type: 'back-header', title: 'Project Name', subtitle: 'Configure project details' },
+          { type: 'tabs', properties: { tabs: ['Details', 'Members', 'Settings'], activeIndex: 0 } },
           { type: 'form-card', title: 'Basic Information', properties: { fields: [
-            { name: 'Project Name', placeholder: 'Oakwood Apartments' },
-            { name: 'Closing Date', placeholder: 'Jan 15, 2024' },
-            { name: 'Sale Date', placeholder: 'Dec 31, 2026' }
+            { name: 'Project Name', placeholder: 'My Project' },
+            { name: 'Description', placeholder: 'Project description' },
+            { name: 'Start Date', placeholder: 'Jan 1, 2024' }
           ] } }
         ]
       }
     },
     {
-      name: 'Projects / [id] / Config / Entities Tab',
+      name: 'Projects / [id] / Config / Members Tab',
       pagePath: 'app/projects/[id]/config/page.tsx',
-      state: 'Entities',
+      state: 'Members',
       pageType: 'list',
       structure: {
         hasNavigation: true,
@@ -486,39 +487,18 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasCards: true,
         hasMetrics: false,
         contentSections: [
-          { type: 'back-header', title: 'Oakwood Apartments', subtitle: 'Configure project details and entities' },
-          { type: 'tabs', properties: { tabs: ['Project Details', 'Entities', 'Waterfall Tiers'], activeIndex: 1 } },
-          { type: 'entity-table', title: 'Project Entities', properties: { headers: ['Name', 'Type', 'Category', 'Contribution', 'Ownership %'], rowCount: 4 } }
-        ]
-      }
-    },
-    {
-      name: 'Projects / [id] / Config / Waterfall Tab',
-      pagePath: 'app/projects/[id]/config/page.tsx',
-      state: 'Waterfall',
-      pageType: 'list',
-      structure: {
-        hasNavigation: true,
-        hasSidebar: false,
-        hasPageHeader: true,
-        hasTabs: true,
-        hasTable: true,
-        hasForm: false,
-        hasCards: true,
-        hasMetrics: false,
-        contentSections: [
-          { type: 'back-header', title: 'Oakwood Apartments', subtitle: 'Configure project details and entities' },
-          { type: 'tabs', properties: { tabs: ['Project Details', 'Entities', 'Waterfall Tiers'], activeIndex: 2 } },
-          { type: 'waterfall-tiers-table', title: 'Waterfall Tiers', properties: { headers: ['Order', 'Tier Name', 'IRR Threshold', 'Multiple', 'LP %', 'GP %'], rowCount: 4 } }
+          { type: 'back-header', title: 'Project Name', subtitle: 'Configure project details' },
+          { type: 'tabs', properties: { tabs: ['Details', 'Members', 'Settings'], activeIndex: 1 } },
+          { type: 'entity-table', title: 'Project Members', properties: { headers: ['Name', 'Email', 'Role', 'Status'], rowCount: 4 } }
         ]
       }
     },
 
-    // Project Setup Wizard - CONFIG-DRIVEN
+    // Setup Wizard - CONFIG-DRIVEN
     {
-      name: 'Projects / [id] / Setup / Step 1 - Sale Proceeds',
-      pagePath: 'app/projects/[id]/setup/page.tsx',
-      state: 'Sale Proceeds',
+      name: 'Setup / Step 1 - Basic Info',
+      pagePath: 'app/setup/page.tsx',
+      state: 'Basic Info',
       pageType: 'form',
       structure: {
         hasNavigation: true,
@@ -530,46 +510,45 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasCards: true,
         hasMetrics: false,
         contentSections: [
-          { type: 'wizard-progress', properties: { currentStep: 1, totalSteps: 4 } },
-          { type: 'header', title: 'Expected Sale Proceeds', subtitle: 'Enter the projected sale price and date' },
+          { type: 'wizard-progress', properties: { currentStep: 1, totalSteps: 3 } },
+          { type: 'header', title: 'Basic Information', subtitle: 'Enter your project details' },
           { type: 'form-card', title: null, properties: { fields: [
-            { name: 'Sale Proceeds', placeholder: '$5,000,000', type: 'currency' },
-            { name: 'Expected Sale Date', placeholder: 'Dec 31, 2026', type: 'date' }
+            { name: 'Name', placeholder: 'Project name', type: 'text' },
+            { name: 'Description', placeholder: 'Brief description', type: 'text' }
           ] } },
-          { type: 'preview-summary', title: 'Preview', properties: { items: [
-            { label: 'Sale Proceeds', value: '$5,000,000' },
-            { label: 'Sale Date', value: 'Dec 31, 2026' }
-          ] } },
-          { type: 'wizard-navigation', properties: { showBack: false, showSkip: true, nextLabel: 'Save & Continue' } }
+          { type: 'wizard-navigation', properties: { showBack: false, showSkip: true, nextLabel: 'Continue' } }
         ]
       }
     },
     {
-      name: 'Projects / [id] / Setup / Step 2 - Contributions',
-      pagePath: 'app/projects/[id]/setup/page.tsx',
-      state: 'Contributions',
+      name: 'Setup / Step 2 - Configuration',
+      pagePath: 'app/setup/page.tsx',
+      state: 'Configuration',
       pageType: 'form',
       structure: {
         hasNavigation: true,
         hasSidebar: false,
         hasPageHeader: true,
         hasTabs: false,
-        hasTable: true,
+        hasTable: false,
         hasForm: true,
         hasCards: true,
         hasMetrics: false,
         contentSections: [
-          { type: 'wizard-progress', properties: { currentStep: 2, totalSteps: 4 } },
-          { type: 'header', title: 'Capital Contributions', subtitle: 'Enter contribution amounts by period' },
-          { type: 'contributions-table', title: null, properties: { headers: ['Entity', 'Total', 'Period 1', 'Period 2', 'Period 3'], rowCount: 4 } },
-          { type: 'wizard-navigation', properties: { showBack: true, showSkip: false, nextLabel: 'Save & Continue' } }
+          { type: 'wizard-progress', properties: { currentStep: 2, totalSteps: 3 } },
+          { type: 'header', title: 'Configuration', subtitle: 'Configure your settings' },
+          { type: 'form-card', title: null, properties: { fields: [
+            { name: 'Option 1', placeholder: 'Select option', type: 'select' },
+            { name: 'Option 2', placeholder: 'Enter value', type: 'text' }
+          ] } },
+          { type: 'wizard-navigation', properties: { showBack: true, showSkip: false, nextLabel: 'Continue' } }
         ]
       }
     },
     {
-      name: 'Projects / [id] / Setup / Step 3 - Review Entities',
-      pagePath: 'app/projects/[id]/setup/page.tsx',
-      state: 'Review Entities',
+      name: 'Setup / Step 3 - Review',
+      pagePath: 'app/setup/page.tsx',
+      state: 'Review',
       pageType: 'list',
       structure: {
         hasNavigation: true,
@@ -581,31 +560,12 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasCards: true,
         hasMetrics: false,
         contentSections: [
-          { type: 'wizard-progress', properties: { currentStep: 3, totalSteps: 4 } },
-          { type: 'header', title: 'Review Entities', subtitle: 'Confirm entity details and ownership percentages' },
-          { type: 'entity-table', title: 'Project Entities', properties: { headers: ['Name', 'Type', 'Category', 'Contribution', 'Ownership %'], rowCount: 4 } },
-          { type: 'wizard-navigation', properties: { showBack: true, showSkip: false, nextLabel: 'Save & Continue' } }
-        ]
-      }
-    },
-    {
-      name: 'Projects / [id] / Setup / Step 4 - Waterfall Rules',
-      pagePath: 'app/projects/[id]/setup/page.tsx',
-      state: 'Waterfall Rules',
-      pageType: 'form',
-      structure: {
-        hasNavigation: true,
-        hasSidebar: false,
-        hasPageHeader: true,
-        hasTabs: false,
-        hasTable: true,
-        hasForm: true,
-        hasCards: true,
-        hasMetrics: false,
-        contentSections: [
-          { type: 'wizard-progress', properties: { currentStep: 4, totalSteps: 4 } },
-          { type: 'header', title: 'Waterfall Rules', subtitle: 'Configure distribution tiers and hurdle rates' },
-          { type: 'waterfall-tiers-table', title: 'Distribution Tiers', properties: { headers: ['Order', 'Tier Name', 'IRR Threshold', 'Multiple', 'LP %', 'GP %'], rowCount: 4 } },
+          { type: 'wizard-progress', properties: { currentStep: 3, totalSteps: 3 } },
+          { type: 'header', title: 'Review', subtitle: 'Confirm your settings' },
+          { type: 'preview-summary', title: 'Summary', properties: { items: [
+            { label: 'Name', value: 'Project name' },
+            { label: 'Description', value: 'Brief description' }
+          ] } },
           { type: 'wizard-navigation', properties: { showBack: true, showSkip: false, nextLabel: 'Complete Setup' } }
         ]
       }

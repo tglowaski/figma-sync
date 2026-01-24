@@ -1,0 +1,26 @@
+{
+  "name": "MyApp",
+  "prefix": "MyApp",
+  "frameWidth": 1440,
+  "frameHeight": 900,
+  "spacing": 100,
+  "columns": 3,
+  "branding": {
+    "logoText": "MyApp",
+    "tagline": "Your Application Tagline",
+    "description": "A brief description of your application"
+  },
+  "navItems": [
+    { "label": "Dashboard", "path": "/dashboard" },
+    { "label": "Projects", "path": "/projects" },
+    { "label": "Settings", "path": "/settings" }
+  ],
+  "pages": [
+    { "name": "Auth / Login", "type": "auth", "state": null },
+    { "name": "Auth / Sign Up", "type": "auth", "state": null },
+    { "name": "Dashboard", "type": "dashboard", "state": null },
+    { "name": "Projects / List", "type": "list", "state": null },
+    { "name": "Projects / [id] / Details", "type": "detail", "state": null },
+    { "name": "Settings", "type": "settings", "state": null }
+  ]
+}

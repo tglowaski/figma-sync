@@ -72,7 +72,7 @@ When suggesting changes, include specific file paths:
 ```
 Update src/main.ts:22
   - Old: name: 'MyApp'
-  + New: name: 'DealApp'
+  + New: name: 'YourProjectName'
 ```
 
 ## Tool Usage

@@ -37,7 +37,7 @@ export interface GeneratedVariables {
 export function createColorCollection(
   lightColors: Record<string, { hex: string; rgb: RGB; desc?: string }>,
   darkColors: Record<string, { hex: string; rgb: RGB }>,
-  prefix: string = 'DealApp'
+  prefix: string = 'MyApp'
 ): VariableCollection {
   const collection = figma.variables.createVariableCollection(`${prefix} Colors`);
   const lightModeId = collection.modes[0].modeId;
@@ -64,7 +64,7 @@ export function createColorCollection(
  */
 export function createSpacingCollection(
   spacing: Record<string, number>,
-  prefix: string = 'DealApp'
+  prefix: string = 'MyApp'
 ): VariableCollection {
   const collection = figma.variables.createVariableCollection(`${prefix} Spacing`);
   const modeId = collection.modes[0].modeId;
@@ -83,7 +83,7 @@ export function createSpacingCollection(
  */
 export function createRadiusCollection(
   radius: Record<string, number>,
-  prefix: string = 'DealApp'
+  prefix: string = 'MyApp'
 ): VariableCollection {
   const collection = figma.variables.createVariableCollection(`${prefix} Radius`);
   const modeId = collection.modes[0].modeId;
@@ -102,7 +102,7 @@ export function createRadiusCollection(
  */
 export function createTypographyCollection(
   fontSize: Record<string, { size: number; lineHeight: number }>,
-  prefix: string = 'DealApp'
+  prefix: string = 'MyApp'
 ): VariableCollection {
   const collection = figma.variables.createVariableCollection(`${prefix} Typography`);
   const modeId = collection.modes[0].modeId;
@@ -125,7 +125,7 @@ export function createTypographyCollection(
  */
 export function createComponentCollection(
   componentSizes: Record<string, number>,
-  prefix: string = 'DealApp'
+  prefix: string = 'MyApp'
 ): VariableCollection {
   const collection = figma.variables.createVariableCollection(`${prefix} Components`);
   const modeId = collection.modes[0].modeId;
@@ -152,7 +152,7 @@ interface TextStyleConfig {
 /**
  * Create text styles
  */
-export async function createTextStyles(prefix: string = 'DealApp'): Promise<TextStyle[]> {
+export async function createTextStyles(prefix: string = 'MyApp'): Promise<TextStyle[]> {
   // Load required fonts
   await Promise.all([
     figma.loadFontAsync({ family: 'Inter', style: 'Regular' }),
@@ -204,7 +204,7 @@ interface ShadowConfig {
 /**
  * Create effect styles (shadows)
  */
-export function createEffectStyles(prefix: string = 'DealApp'): EffectStyle[] {
+export function createEffectStyles(prefix: string = 'MyApp'): EffectStyle[] {
   const shadows: ShadowConfig[] = [
     {
       name: `${prefix}/Shadow/XS`,
@@ -265,7 +265,7 @@ export function createEffectStyles(prefix: string = 'DealApp'): EffectStyle[] {
  */
 export async function generateAllVariables(
   tokens: ParsedTokens,
-  prefix: string = 'DealApp'
+  prefix: string = 'MyApp'
 ): Promise<GeneratedVariables> {
   // Prepare color data
   const lightColors: Record<string, { hex: string; rgb: RGB; desc?: string }> = {};

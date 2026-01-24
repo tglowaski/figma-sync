@@ -50,7 +50,7 @@ export interface NavItem {
  * Branding configuration
  */
 export interface BrandingConfig {
-  /** Text displayed next to logo icon (e.g., "DealApp") */
+  /** Text displayed next to logo icon (e.g., "MyApp") */
   logoText: string;
   /** Optional tagline for marketing pages */
   tagline?: string;
@@ -64,7 +64,7 @@ export interface BrandingConfig {
 export interface PluginConfig {
   /** Project name (used in UI and documentation) */
   name: string;
-  /** Variable prefix for Figma collections (e.g., "DealApp Colors") */
+  /** Variable prefix for Figma collections (e.g., "MyApp Colors") */
   prefix: string;
   /** Frame width for wireframes */
   frameWidth: number;
