@@ -1,0 +1,35 @@
+{
+  "name": "Figma Sync",
+  "id": "figma-sync",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "editorType": ["figma"],
+  "menu": [
+    {
+      "name": "Sync All",
+      "command": "syncAll"
+    },
+    {
+      "separator": true
+    },
+    {
+      "name": "Create Variables & Styles",
+      "command": "createVariables"
+    },
+    {
+      "name": "Create Component Library",
+      "command": "createComponents"
+    },
+    {
+      "name": "Create Page Wireframes",
+      "command": "createWireframes"
+    },
+    {
+      "separator": true
+    },
+    {
+      "name": "Load Configuration",
+      "command": "loadConfig"
+    }
+  ]
+}

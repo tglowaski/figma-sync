@@ -1,0 +1,18 @@
+{
+  "name": "MyApp",
+  "prefix": "MyApp",
+  "frameWidth": 1440,
+  "frameHeight": 900,
+  "spacing": 100,
+  "columns": 3,
+  "branding": {
+    "logoText": "MyApp",
+    "tagline": "Your application tagline",
+    "description": "Application description"
+  },
+  "navItems": [
+    { "label": "Dashboard", "path": "/dashboard" },
+    { "label": "Projects", "path": "/projects" },
+    { "label": "Settings", "path": "/settings" }
+  ]
+}

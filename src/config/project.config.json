@@ -1,0 +1,103 @@
+{
+  "name": "DealApp",
+  "description": "Real Estate Investment Analytics Platform",
+
+  "sources": {
+    "tokens": "app/globals.css",
+    "tailwind": "tailwind.config.ts",
+    "components": "components/",
+    "pages": "app/"
+  },
+
+  "variables": {
+    "colorMode": ["light", "dark"],
+    "prefix": "DealApp",
+    "collections": {
+      "colors": true,
+      "spacing": true,
+      "radius": true,
+      "typography": true,
+      "components": true
+    }
+  },
+
+  "components": {
+    "include": ["components/ui/**/*.tsx"],
+    "exclude": ["**/*.test.tsx", "**/index.ts"],
+    "variantDetection": true,
+    "preserveNaming": true
+  },
+
+  "wireframes": {
+    "include": ["app/**/page.tsx"],
+    "exclude": ["app/api/**", "app/**/loading.tsx", "app/**/error.tsx"],
+    "frameWidth": 1440,
+    "frameHeight": 900,
+    "includeNavigation": true,
+    "stateDetection": {
+      "tabs": true,
+      "loading": true,
+      "auth": true,
+      "empty": true,
+      "error": false
+    },
+    "namingPattern": "{category} / {page} / {state}"
+  },
+
+  "fonts": {
+    "primary": { "family": "Inter", "fallback": "Geist Sans" },
+    "mono": { "family": "JetBrains Mono", "fallback": "Geist Mono" }
+  },
+
+  "naming": {
+    "variables": "{prefix}/{category}/{name}",
+    "components": "{name}/{variant}",
+    "wireframes": "{category} / {name}"
+  },
+
+  "spacing": {
+    "scale": {
+      "0": 0, "0.5": 2, "1": 4, "1.5": 6, "2": 8, "2.5": 10,
+      "3": 12, "3.5": 14, "4": 16, "5": 20, "6": 24, "7": 28,
+      "8": 32, "9": 36, "10": 40, "12": 48, "14": 56, "16": 64,
+      "20": 80, "24": 96
+    }
+  },
+
+  "borderRadius": {
+    "none": 0,
+    "sm": 6,
+    "md": 8,
+    "base": 10,
+    "lg": 10,
+    "xl": 14,
+    "2xl": 16,
+    "full": 9999
+  },
+
+  "fontSize": {
+    "xs": { "size": 12, "lineHeight": 16 },
+    "sm": { "size": 14, "lineHeight": 20 },
+    "base": { "size": 16, "lineHeight": 24 },
+    "lg": { "size": 18, "lineHeight": 28 },
+    "xl": { "size": 20, "lineHeight": 28 },
+    "2xl": { "size": 24, "lineHeight": 32 },
+    "3xl": { "size": 30, "lineHeight": 36 },
+    "4xl": { "size": 36, "lineHeight": 40 }
+  },
+
+  "componentSizes": {
+    "buttonSm": 32,
+    "buttonDefault": 36,
+    "buttonLg": 40,
+    "buttonIcon": 36,
+    "inputHeight": 36,
+    "avatarSm": 32,
+    "avatarDefault": 40,
+    "avatarLg": 64,
+    "avatarXl": 80,
+    "navHeight": 64,
+    "badgeHeight": 20,
+    "tabsHeight": 40
+  }
+}
