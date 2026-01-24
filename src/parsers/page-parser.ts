@@ -59,7 +59,18 @@ export interface WireframeStructure {
   hasForm: boolean;
   hasCards: boolean;
   hasMetrics: boolean;
-  contentSections: string[];
+  /** Content sections to render - maps to registered section renderers */
+  contentSections: (ContentSectionConfig | string)[];
+}
+
+/**
+ * Content section configuration for wireframe generation
+ */
+export interface ContentSectionConfig {
+  type: string;
+  title?: string;
+  subtitle?: string;
+  properties?: Record<string, unknown>;
 }
 
 // ============================================
@@ -254,10 +265,13 @@ export function generateWireframeConfigs(page: ParsedPage): WireframeConfig[] {
 
 /**
  * Get predefined page configurations for DealApp
+ *
+ * Content sections map to registered section renderers in section-renderers.ts.
+ * The generator will use config-driven generation when contentSections are defined.
  */
 export function getPredefinedPages(): WireframeConfig[] {
   return [
-    // Auth Pages
+    // Auth Pages (use legacy generator - special centered layout)
     {
       name: 'Auth / Login',
       pagePath: 'app/auth/login/page.tsx',
@@ -271,7 +285,7 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasForm: true,
         hasCards: true,
         hasMetrics: false,
-        contentSections: ['auth-card', 'form']
+        contentSections: [] // Empty = use legacy generator
       }
     },
     {
@@ -287,11 +301,11 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasForm: true,
         hasCards: true,
         hasMetrics: false,
-        contentSections: ['auth-card', 'form']
+        contentSections: [] // Empty = use legacy generator
       }
     },
 
-    // Dashboard
+    // Dashboard (use legacy generator - complex layout)
     {
       name: 'Dashboard',
       pagePath: 'app/page.tsx',
@@ -305,11 +319,11 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasForm: false,
         hasCards: true,
         hasMetrics: true,
-        contentSections: ['metrics', 'table', 'chart']
+        contentSections: [] // Empty = use legacy generator
       }
     },
 
-    // Waterfall Page States
+    // Waterfall Page States - CONFIG-DRIVEN
     {
       name: 'Waterfall / Loading',
       pagePath: 'app/waterfall/page.tsx',
@@ -341,7 +355,9 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasForm: false,
         hasCards: true,
         hasMetrics: false,
-        contentSections: ['auth-prompt']
+        contentSections: [
+          { type: 'auth-prompt', title: 'Sign In Required', properties: { message: 'Please sign in to access this page.', actionLabel: 'Sign In' } }
+        ]
       }
     },
     {
@@ -358,7 +374,9 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasForm: false,
         hasCards: true,
         hasMetrics: false,
-        contentSections: ['org-prompt']
+        contentSections: [
+          { type: 'org-prompt', title: 'No Organization', properties: { message: 'Please select or create an organization.', actionLabel: 'Select Organization' } }
+        ]
       }
     },
     {
@@ -375,7 +393,9 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasForm: false,
         hasCards: true,
         hasMetrics: false,
-        contentSections: ['empty-state']
+        contentSections: [
+          { type: 'empty-state', title: 'No Projects Found', properties: { message: 'Create a project and complete setup to start calculating waterfall distributions.', actionLabel: 'Create Project' } }
+        ]
       }
     },
     {
@@ -392,7 +412,12 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasForm: false,
         hasCards: true,
         hasMetrics: false,
-        contentSections: ['header', 'project-selector', 'tabs', 'summary-table']
+        contentSections: [
+          { type: 'header', title: 'Waterfall Distributions', subtitle: 'Calculate and analyze waterfall distributions' },
+          { type: 'project-selector', properties: { projectName: 'Oakwood Apartments' } },
+          { type: 'tabs', properties: { tabs: ['Summary', 'Detail'], activeIndex: 0 } },
+          { type: 'summary-table', title: 'Distribution Summary', properties: { headers: ['Entity', 'Contribution', 'Distribution', 'IRR', 'Multiple'], rowCount: 6 } }
+        ]
       }
     },
     {
@@ -409,11 +434,18 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasForm: true,
         hasCards: true,
         hasMetrics: false,
-        contentSections: ['header', 'project-selector', 'tabs', 'sales-input', 'contributions-table', 'distributions-table']
+        contentSections: [
+          { type: 'header', title: 'Waterfall Distributions', subtitle: 'Calculate and analyze waterfall distributions' },
+          { type: 'project-selector', properties: { projectName: 'Oakwood Apartments' } },
+          { type: 'tabs', properties: { tabs: ['Summary', 'Detail'], activeIndex: 1 } },
+          { type: 'sales-input-card', title: 'Sale Proceeds' },
+          { type: 'contributions-table', title: 'Capital Contributions', properties: { headers: ['Entity', 'Total', 'Period 1', 'Period 2', 'Period 3'], rowCount: 4 } },
+          { type: 'distributions-table', title: 'Distributions by Tier', properties: { headers: ['Tier', 'Entity', 'IRR', 'Amount', 'Cumulative'], rowCount: 6 } }
+        ]
       }
     },
 
-    // Project Config States
+    // Project Config States - CONFIG-DRIVEN
     {
       name: 'Projects / [id] / Config / Details Tab',
       pagePath: 'app/projects/[id]/config/page.tsx',
@@ -428,7 +460,15 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasForm: true,
         hasCards: true,
         hasMetrics: false,
-        contentSections: ['header', 'back-button', 'tabs', 'form-card']
+        contentSections: [
+          { type: 'back-header', title: 'Oakwood Apartments', subtitle: 'Configure project details and entities' },
+          { type: 'tabs', properties: { tabs: ['Project Details', 'Entities', 'Waterfall Tiers'], activeIndex: 0 } },
+          { type: 'form-card', title: 'Basic Information', properties: { fields: [
+            { name: 'Project Name', placeholder: 'Oakwood Apartments' },
+            { name: 'Closing Date', placeholder: 'Jan 15, 2024' },
+            { name: 'Sale Date', placeholder: 'Dec 31, 2026' }
+          ] } }
+        ]
       }
     },
     {
@@ -445,7 +485,11 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasForm: false,
         hasCards: true,
         hasMetrics: false,
-        contentSections: ['header', 'back-button', 'tabs', 'entity-table']
+        contentSections: [
+          { type: 'back-header', title: 'Oakwood Apartments', subtitle: 'Configure project details and entities' },
+          { type: 'tabs', properties: { tabs: ['Project Details', 'Entities', 'Waterfall Tiers'], activeIndex: 1 } },
+          { type: 'entity-table', title: 'Project Entities', properties: { headers: ['Name', 'Type', 'Category', 'Contribution', 'Ownership %'], rowCount: 4 } }
+        ]
       }
     },
     {
@@ -462,11 +506,15 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasForm: false,
         hasCards: true,
         hasMetrics: false,
-        contentSections: ['header', 'back-button', 'tabs', 'waterfall-table']
+        contentSections: [
+          { type: 'back-header', title: 'Oakwood Apartments', subtitle: 'Configure project details and entities' },
+          { type: 'tabs', properties: { tabs: ['Project Details', 'Entities', 'Waterfall Tiers'], activeIndex: 2 } },
+          { type: 'waterfall-tiers-table', title: 'Waterfall Tiers', properties: { headers: ['Order', 'Tier Name', 'IRR Threshold', 'Multiple', 'LP %', 'GP %'], rowCount: 4 } }
+        ]
       }
     },
 
-    // Project Setup Wizard
+    // Project Setup Wizard - CONFIG-DRIVEN
     {
       name: 'Projects / [id] / Setup / Step 1 - Sale Proceeds',
       pagePath: 'app/projects/[id]/setup/page.tsx',
@@ -481,7 +529,19 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasForm: true,
         hasCards: true,
         hasMetrics: false,
-        contentSections: ['wizard-progress', 'form-card']
+        contentSections: [
+          { type: 'wizard-progress', properties: { currentStep: 1, totalSteps: 4 } },
+          { type: 'header', title: 'Expected Sale Proceeds', subtitle: 'Enter the projected sale price and date' },
+          { type: 'form-card', title: null, properties: { fields: [
+            { name: 'Sale Proceeds', placeholder: '$5,000,000', type: 'currency' },
+            { name: 'Expected Sale Date', placeholder: 'Dec 31, 2026', type: 'date' }
+          ] } },
+          { type: 'preview-summary', title: 'Preview', properties: { items: [
+            { label: 'Sale Proceeds', value: '$5,000,000' },
+            { label: 'Sale Date', value: 'Dec 31, 2026' }
+          ] } },
+          { type: 'wizard-navigation', properties: { showBack: false, showSkip: true, nextLabel: 'Save & Continue' } }
+        ]
       }
     },
     {
@@ -498,7 +558,12 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasForm: true,
         hasCards: true,
         hasMetrics: false,
-        contentSections: ['wizard-progress', 'form-card', 'table']
+        contentSections: [
+          { type: 'wizard-progress', properties: { currentStep: 2, totalSteps: 4 } },
+          { type: 'header', title: 'Capital Contributions', subtitle: 'Enter contribution amounts by period' },
+          { type: 'contributions-table', title: null, properties: { headers: ['Entity', 'Total', 'Period 1', 'Period 2', 'Period 3'], rowCount: 4 } },
+          { type: 'wizard-navigation', properties: { showBack: true, showSkip: false, nextLabel: 'Save & Continue' } }
+        ]
       }
     },
     {
@@ -515,7 +580,12 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasForm: false,
         hasCards: true,
         hasMetrics: false,
-        contentSections: ['wizard-progress', 'entity-table']
+        contentSections: [
+          { type: 'wizard-progress', properties: { currentStep: 3, totalSteps: 4 } },
+          { type: 'header', title: 'Review Entities', subtitle: 'Confirm entity details and ownership percentages' },
+          { type: 'entity-table', title: 'Project Entities', properties: { headers: ['Name', 'Type', 'Category', 'Contribution', 'Ownership %'], rowCount: 4 } },
+          { type: 'wizard-navigation', properties: { showBack: true, showSkip: false, nextLabel: 'Save & Continue' } }
+        ]
       }
     },
     {
@@ -532,11 +602,16 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasForm: true,
         hasCards: true,
         hasMetrics: false,
-        contentSections: ['wizard-progress', 'waterfall-config']
+        contentSections: [
+          { type: 'wizard-progress', properties: { currentStep: 4, totalSteps: 4 } },
+          { type: 'header', title: 'Waterfall Rules', subtitle: 'Configure distribution tiers and hurdle rates' },
+          { type: 'waterfall-tiers-table', title: 'Distribution Tiers', properties: { headers: ['Order', 'Tier Name', 'IRR Threshold', 'Multiple', 'LP %', 'GP %'], rowCount: 4 } },
+          { type: 'wizard-navigation', properties: { showBack: true, showSkip: false, nextLabel: 'Complete Setup' } }
+        ]
       }
     },
 
-    // Settings
+    // Settings (use legacy generator)
     {
       name: 'Settings',
       pagePath: 'app/settings/page.tsx',
@@ -550,11 +625,11 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasForm: true,
         hasCards: true,
         hasMetrics: false,
-        contentSections: ['header', 'tabs', 'settings-form']
+        contentSections: [] // Empty = use legacy generator
       }
     },
 
-    // Profile
+    // Profile (use legacy generator)
     {
       name: 'Profile',
       pagePath: 'app/profile/page.tsx',
@@ -568,7 +643,7 @@ export function getPredefinedPages(): WireframeConfig[] {
         hasForm: true,
         hasCards: true,
         hasMetrics: false,
-        contentSections: ['breadcrumb', 'avatar-header', 'tabs', 'form-card']
+        contentSections: [] // Empty = use legacy generator
       }
     }
   ];

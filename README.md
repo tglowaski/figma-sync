@@ -114,17 +114,16 @@ figma-sync/
 ├── src/
 │   ├── main.ts             # Entry point with configuration
 │   ├── config/
-│   │   ├── schema.ts       # Configuration type definitions
-│   │   ├── default.config.json
-│   │   └── project.config.json
+│   │   └── schema.ts       # Configuration type definitions
 │   ├── parsers/
 │   │   ├── token-parser.ts    # CSS variable parsing
 │   │   ├── component-parser.ts
-│   │   └── page-parser.ts
+│   │   └── page-parser.ts     # Page configurations
 │   ├── generators/
 │   │   ├── variable-generator.ts   # Figma variables
 │   │   ├── component-generator.ts  # UI components
-│   │   └── wireframe-generator.ts  # Page wireframes
+│   │   ├── wireframe-generator.ts  # Page wireframes
+│   │   └── section-renderers.ts    # Section renderer registry
 │   ├── utils/
 │   │   └── figma-helpers.ts
 │   ├── rules/
@@ -134,10 +133,103 @@ figma-sync/
 │       ├── generator.ts    # Mock data generation
 │       ├── patterns.ts     # Column type detection
 │       └── samples.ts      # Sample value pools
-├── examples/
-│   └── dealapp.config.json # DealApp-specific config
 └── dist/
     └── code.js             # Compiled plugin
+```
+
+## Configuration-Driven Wireframes
+
+The wireframe generator uses a **section renderer registry** that allows pages to be composed via configuration instead of hardcoded functions.
+
+### How It Works
+
+```
+Configuration (JSON)          →  Section Renderers (Code)  →  Generated Wireframe
+
+{ contentSections: [              header-renderer              ┌─────────────────┐
+    "header",            →        tabs-renderer         →      │ Header          │
+    "tabs",                       table-renderer               │ Tabs            │
+    "entity-table"                                             │ Entity Table    │
+  ]                                                            └─────────────────┘
+}
+```
+
+### Defining Pages with Content Sections
+
+Pages can be defined in `src/parsers/page-parser.ts` using content sections:
+
+```typescript
+{
+  name: 'Waterfall / Detail',
+  pagePath: 'app/waterfall/page.tsx',
+  state: 'Detail',
+  pageType: 'list',
+  structure: {
+    hasNavigation: true,
+    contentSections: [
+      { type: 'header', title: 'Waterfall Distributions', subtitle: 'Calculate distributions' },
+      { type: 'project-selector', properties: { projectName: 'Oakwood Apartments' } },
+      { type: 'tabs', properties: { tabs: ['Summary', 'Detail'], activeIndex: 1 } },
+      { type: 'sales-input-card', title: 'Sale Proceeds' },
+      { type: 'contributions-table', properties: { headers: ['Entity', 'Total', 'Period 1'], rowCount: 4 } }
+    ]
+  }
+}
+```
+
+### Available Section Renderers
+
+| Section Type | Description | Properties |
+|--------------|-------------|------------|
+| `header` | Page title + subtitle | `title`, `subtitle` |
+| `header-with-action` | Header with action button | `title`, `subtitle`, `actionLabel` |
+| `back-header` | Header with back button | `title`, `subtitle`, `showEditButton` |
+| `tabs` | Tab list component | `tabs: string[]`, `activeIndex: number` |
+| `table` | Generic data table | `headers: string[]`, `rowCount: number` |
+| `form-card` | Card with form fields | `title`, `fields: [{name, placeholder}]` |
+| `metrics` | Row of metric cards | `metrics: [{title, value, subtitle}]` |
+| `button-row` | Action buttons | `buttons: [{label, variant}]`, `alignment` |
+| `loading-spinner` | Centered spinner | - |
+| `empty-state` | Empty state with CTA | `title`, `message`, `actionLabel` |
+| `auth-prompt` | Sign in prompt | `title`, `message`, `actionLabel` |
+| `org-prompt` | Organization prompt | `title`, `message`, `actionLabel` |
+
+**Wizard Renderers:**
+
+| Section Type | Description | Properties |
+|--------------|-------------|------------|
+| `wizard-progress` | Step progress indicator | `currentStep`, `totalSteps` |
+| `wizard-navigation` | Back/Skip/Continue buttons | `showBack`, `showSkip`, `nextLabel` |
+| `preview-summary` | Summary card | `title`, `items: [{label, value}]` |
+
+**Domain-Specific Renderers:**
+
+| Section Type | Description | Properties |
+|--------------|-------------|------------|
+| `project-selector` | Project dropdown + configure | `projectName`, `showConfigureButton` |
+| `sales-input-card` | Sale proceeds input | `title` |
+| `contributions-table` | Entity × period grid | `title`, `headers`, `rowCount` |
+| `distributions-table` | Tier distribution table | `title`, `headers`, `rowCount` |
+| `entity-table` | Entities with add button | `title`, `headers`, `rowCount` |
+| `waterfall-tiers-table` | Tier configuration | `title`, `headers`, `rowCount` |
+| `summary-table` | Waterfall results | `title`, `headers`, `rowCount` |
+| `breadcrumb` | Breadcrumb navigation | `items: string[]` |
+| `avatar-header` | Header with avatar | `title`, `subtitle` |
+| `chart` | Chart placeholder | `title`, `width`, `height` |
+
+### Adding Custom Renderers
+
+Register new renderers in `src/generators/section-renderers.ts`:
+
+```typescript
+registerRenderer('my-custom-section', (parent, section, config) => {
+  const { colors, frameWidth } = config;
+  const title = section.title || 'Default Title';
+
+  // Create your Figma nodes...
+  const card = createCard(title, frameWidth - 160, 200, colors);
+  parent.appendChild(card);
+});
 ```
 
 ## Using as Git Submodule
@@ -185,13 +277,29 @@ git commit -m "Update figma-sync submodule"
 
 ### Wireframes
 
-- Auth pages (Login, Sign Up)
+**Auth & Core:**
+- Auth / Login, Auth / Sign Up
 - Dashboard
-- Loading states
-- Empty states
-- Settings page
-- Profile page
-- And more...
+- Settings, Profile
+
+**Waterfall States:**
+- Waterfall / Loading
+- Waterfall / Not Signed In
+- Waterfall / No Organization
+- Waterfall / No Projects (Empty)
+- Waterfall / Summary
+- Waterfall / Detail
+
+**Project Configuration:**
+- Projects / Config / Details Tab
+- Projects / Config / Entities Tab
+- Projects / Config / Waterfall Tab
+
+**Project Setup Wizard:**
+- Step 1 - Sale Proceeds
+- Step 2 - Contributions
+- Step 3 - Review Entities
+- Step 4 - Waterfall Rules
 
 ## Mock Data System
 

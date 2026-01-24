@@ -9,21 +9,29 @@ import { RGB } from '../utils/figma-helpers';
 import { WireframeConfig, getPredefinedPages } from '../parsers/page-parser';
 import { ColorPalette, defaultColors, defaultRadius } from './component-generator';
 import { generateMockRows } from '../mock-data';
+import { PageConfig, ContentSection } from '../config/schema';
+import {
+  getRenderer,
+  normalizeSection,
+  SectionRendererConfig,
+  createAutoLayoutFrame,
+  createRect,
+  createText,
+  createCard,
+  createButton,
+  createInputField,
+  createTable,
+  createTabs,
+  createMetricCard,
+  setStroke,
+  setShadow,
+  BrandingConfig,
+  NavItem
+} from './section-renderers';
 
 // ============================================
 // TYPES
 // ============================================
-
-export interface BrandingConfig {
-  logoText: string;
-  tagline?: string;
-  description?: string;
-}
-
-export interface NavItem {
-  label: string;
-  path?: string;
-}
 
 export interface WireframeGeneratorConfig {
   colors: ColorPalette;
@@ -36,66 +44,12 @@ export interface WireframeGeneratorConfig {
   branding?: BrandingConfig;
   /** Navigation items for the nav bar */
   navItems?: NavItem[];
+  /** Custom pages configuration */
+  pages?: PageConfig[];
 }
 
 // ============================================
-// HELPER FUNCTIONS
-// ============================================
-
-function createAutoLayoutFrame(
-  name: string,
-  direction: 'HORIZONTAL' | 'VERTICAL' = 'HORIZONTAL',
-  padding: number = 0,
-  gap: number = 0
-): FrameNode {
-  const frame = figma.createFrame();
-  frame.name = name;
-  frame.layoutMode = direction;
-  frame.primaryAxisSizingMode = 'AUTO';
-  frame.counterAxisSizingMode = 'AUTO';
-  frame.paddingLeft = padding;
-  frame.paddingRight = padding;
-  frame.paddingTop = padding;
-  frame.paddingBottom = padding;
-  frame.itemSpacing = gap;
-  frame.fills = [];
-  return frame;
-}
-
-function createRect(width: number, height: number, fill: RGB, cornerRadius: number = 0): RectangleNode {
-  const rect = figma.createRectangle();
-  rect.resize(width, height);
-  rect.fills = [{ type: 'SOLID', color: fill }];
-  rect.cornerRadius = cornerRadius;
-  return rect;
-}
-
-function createText(content: string, size: number, weight: string, color: RGB): TextNode {
-  const text = figma.createText();
-  text.characters = content;
-  text.fontSize = size;
-  text.fontName = { family: 'Inter', style: weight };
-  text.fills = [{ type: 'SOLID', color }];
-  return text;
-}
-
-function setStroke(node: GeometryMixin, color: RGB, weight: number = 1): void {
-  node.strokes = [{ type: 'SOLID', color }];
-  node.strokeWeight = weight;
-}
-
-function setShadow(node: BlendMixin, type: 'xs' | 'sm' | 'md' | 'lg' = 'sm'): void {
-  const shadows: Record<string, DropShadowEffect[]> = {
-    xs: [{ type: 'DROP_SHADOW', color: { r: 0, g: 0, b: 0, a: 0.05 }, offset: { x: 0, y: 1 }, radius: 2, spread: 0, visible: true, blendMode: 'NORMAL' }],
-    sm: [{ type: 'DROP_SHADOW', color: { r: 0, g: 0, b: 0, a: 0.1 }, offset: { x: 0, y: 1 }, radius: 3, spread: 0, visible: true, blendMode: 'NORMAL' }],
-    md: [{ type: 'DROP_SHADOW', color: { r: 0, g: 0, b: 0, a: 0.1 }, offset: { x: 0, y: 4 }, radius: 6, spread: -1, visible: true, blendMode: 'NORMAL' }],
-    lg: [{ type: 'DROP_SHADOW', color: { r: 0, g: 0, b: 0, a: 0.1 }, offset: { x: 0, y: 10 }, radius: 15, spread: -3, visible: true, blendMode: 'NORMAL' }]
-  };
-  node.effects = shadows[type] || shadows.sm;
-}
-
-// ============================================
-// COMPONENT BUILDERS
+// NAVIGATION BAR
 // ============================================
 
 function createNavBar(
@@ -149,244 +103,82 @@ function createNavBar(
   return nav;
 }
 
-function createCard(
-  title: string | null,
-  width: number,
-  height: number,
-  colors: ColorPalette,
-  radius: typeof defaultRadius
-): FrameNode {
-  const card = createAutoLayoutFrame('Card', 'VERTICAL', 24, 16);
-  card.cornerRadius = radius.xl;
-  card.fills = [{ type: 'SOLID', color: colors.card }];
-  setStroke(card, colors.border);
-  setShadow(card, 'sm');
-  if (width) card.resize(width, height || 200);
+// ============================================
+// CONFIGURATION-DRIVEN PAGE GENERATOR
+// ============================================
 
-  if (title) {
-    const cardTitle = createText(title, 16, 'Semi Bold', colors.foreground);
-    card.appendChild(cardTitle);
+/**
+ * Generate wireframe from page configuration using section renderers
+ */
+function generateFromConfig(
+  frame: FrameNode,
+  pageConfig: WireframeConfig,
+  config: WireframeGeneratorConfig
+): void {
+  const { colors, frameWidth, frameHeight, branding, navItems } = config;
+  const sections = pageConfig.structure?.contentSections || [];
+
+  // Create nav bar if needed
+  const hasNav = pageConfig.structure?.hasNavigation !== false;
+  if (hasNav) {
+    createNavBar(frame, frameWidth, colors, branding, navItems);
   }
-  return card;
-}
 
-function createButton(
-  label: string,
-  variant: 'default' | 'outline' | 'ghost' | 'destructive' = 'default',
-  colors: ColorPalette
-): FrameNode {
-  const configs: Record<string, { bg: RGB; fg: RGB; border?: RGB }> = {
-    default: { bg: colors.primary, fg: colors.primaryForeground },
-    outline: { bg: colors.background, fg: colors.foreground, border: colors.border },
-    ghost: { bg: colors.background, fg: colors.foreground },
-    destructive: { bg: colors.destructive, fg: colors.destructiveForeground }
+  // Content container
+  const content = createAutoLayoutFrame('Content', 'VERTICAL', 24, 24);
+  content.x = 0;
+  content.y = hasNav ? 64 : 0;
+  content.resize(frameWidth, frameHeight - (hasNav ? 64 : 0));
+  content.paddingLeft = 80;
+  content.paddingRight = 80;
+  content.paddingTop = 32;
+
+  // Build section renderer config
+  const rendererConfig: SectionRendererConfig = {
+    colors,
+    radius: config.radius,
+    frameWidth,
+    frameHeight,
+    branding,
+    navItems
   };
-  const config = configs[variant] || configs.default;
 
-  const btn = createAutoLayoutFrame('Button', 'HORIZONTAL', 0, 8);
-  btn.paddingLeft = 16;
-  btn.paddingRight = 16;
-  btn.paddingTop = 10;
-  btn.paddingBottom = 10;
-  btn.cornerRadius = 8;
-  btn.fills = [{ type: 'SOLID', color: config.bg }];
-  if (config.border) setStroke(btn, config.border);
-  btn.counterAxisAlignItems = 'CENTER';
-  btn.primaryAxisAlignItems = 'CENTER';
+  // Render each content section in order
+  for (const sectionDef of sections) {
+    const section = normalizeSection(sectionDef);
+    const renderer = getRenderer(section.type);
 
-  const text = createText(label, 14, 'Medium', config.fg);
-  btn.appendChild(text);
-  return btn;
-}
-
-function createInputField(
-  label: string,
-  placeholder: string,
-  width: number,
-  colors: ColorPalette
-): FrameNode {
-  const field = createAutoLayoutFrame('Field', 'VERTICAL', 0, 6);
-  if (width) field.resize(width, 64);
-
-  const labelText = createText(label, 14, 'Medium', colors.foreground);
-  field.appendChild(labelText);
-
-  const input = createAutoLayoutFrame('Input', 'HORIZONTAL', 0, 0);
-  input.paddingLeft = 12;
-  input.paddingRight = 12;
-  input.paddingTop = 10;
-  input.paddingBottom = 10;
-  input.cornerRadius = 8;
-  input.fills = [{ type: 'SOLID', color: colors.background }];
-  setStroke(input, colors.input);
-  if (width) input.resize(width, 40);
-
-  const inputText = createText(placeholder || 'Enter...', 14, 'Regular', colors.mutedForeground);
-  input.appendChild(inputText);
-  field.appendChild(input);
-
-  return field;
-}
-
-function createTable(
-  headers: string[],
-  rows: string[][],
-  width: number,
-  colors: ColorPalette
-): FrameNode {
-  const table = createAutoLayoutFrame('Table', 'VERTICAL', 0, 0);
-  table.fills = [{ type: 'SOLID', color: colors.background }];
-  setStroke(table, colors.border);
-  table.cornerRadius = 8;
-  table.clipsContent = true;
-  if (width) table.resize(width, 50 + rows.length * 48);
-
-  // Header
-  const headerRow = createAutoLayoutFrame('TableHeader', 'HORIZONTAL', 0, 0);
-  headerRow.fills = [{ type: 'SOLID', color: colors.muted }];
-  headerRow.resize(width, 44);
-  headerRow.counterAxisAlignItems = 'CENTER';
-
-  const colWidth = Math.floor((width - 32) / headers.length);
-  headers.forEach(h => {
-    const cell = createAutoLayoutFrame('HeaderCell', 'HORIZONTAL', 0, 0);
-    cell.paddingLeft = 16;
-    cell.resize(colWidth, 44);
-    cell.counterAxisAlignItems = 'CENTER';
-    const text = createText(h, 12, 'Medium', colors.mutedForeground);
-    cell.appendChild(text);
-    headerRow.appendChild(cell);
-  });
-  table.appendChild(headerRow);
-
-  // Rows
-  rows.forEach((rowData, rowIndex) => {
-    const row = createAutoLayoutFrame('TableRow', 'HORIZONTAL', 0, 0);
-    row.resize(width, 48);
-    row.counterAxisAlignItems = 'CENTER';
-    if (rowIndex < rows.length - 1) {
-      row.strokes = [{ type: 'SOLID', color: colors.border }];
-      row.strokeBottomWeight = 1;
-      row.strokeTopWeight = 0;
-      row.strokeLeftWeight = 0;
-      row.strokeRightWeight = 0;
-    }
-
-    rowData.forEach(cellData => {
-      const cell = createAutoLayoutFrame('Cell', 'HORIZONTAL', 0, 0);
-      cell.paddingLeft = 16;
-      cell.resize(colWidth, 48);
-      cell.counterAxisAlignItems = 'CENTER';
-      const text = createText(cellData, 14, 'Regular', colors.foreground);
-      cell.appendChild(text);
-      row.appendChild(cell);
-    });
-    table.appendChild(row);
-  });
-
-  return table;
-}
-
-function createTabs(
-  tabNames: string[],
-  activeIndex: number,
-  colors: ColorPalette
-): FrameNode {
-  const tabList = createAutoLayoutFrame('TabsList', 'HORIZONTAL', 4, 4);
-  tabList.cornerRadius = 8;
-  tabList.fills = [{ type: 'SOLID', color: colors.muted }];
-
-  tabNames.forEach((name, i) => {
-    const tab = createAutoLayoutFrame('Tab', 'HORIZONTAL', 0, 0);
-    tab.paddingLeft = 16;
-    tab.paddingRight = 16;
-    tab.paddingTop = 8;
-    tab.paddingBottom = 8;
-    tab.cornerRadius = 6;
-    if (i === activeIndex) {
-      tab.fills = [{ type: 'SOLID', color: colors.background }];
-      setShadow(tab, 'xs');
+    if (renderer) {
+      renderer(content, section, rendererConfig);
     } else {
-      tab.fills = [];
+      // Fallback: log warning and create placeholder
+      console.warn(`No renderer for section: ${section.type}`);
+      const placeholder = createAutoLayoutFrame(`Unknown-${section.type}`, 'VERTICAL', 16, 8);
+      placeholder.fills = [{ type: 'SOLID', color: colors.muted }];
+      placeholder.cornerRadius = 8;
+      placeholder.resize(frameWidth - 160, 80);
+      const label = createText(`Section: ${section.type} (no renderer)`, 14, 'Regular', colors.mutedForeground);
+      placeholder.appendChild(label);
+      content.appendChild(placeholder);
     }
-    const text = createText(name, 14, 'Medium', i === activeIndex ? colors.foreground : colors.mutedForeground);
-    tab.appendChild(text);
-    tabList.appendChild(tab);
-  });
-
-  return tabList;
-}
-
-function createMetricCard(
-  title: string,
-  value: string,
-  subtitle: string | null,
-  colors: ColorPalette
-): FrameNode {
-  const card = createAutoLayoutFrame('MetricCard', 'VERTICAL', 20, 8);
-  card.cornerRadius = 12;
-  card.fills = [{ type: 'SOLID', color: colors.card }];
-  setStroke(card, colors.border);
-  card.resize(250, 120);
-
-  const titleText = createText(title, 14, 'Medium', colors.mutedForeground);
-  card.appendChild(titleText);
-
-  const valueText = createText(value, 28, 'Bold', colors.foreground);
-  card.appendChild(valueText);
-
-  if (subtitle) {
-    const subText = createText(subtitle, 12, 'Regular', colors.mutedForeground);
-    card.appendChild(subText);
   }
 
-  return card;
+  frame.appendChild(content);
 }
 
-function createLoader(colors: ColorPalette): FrameNode {
-  const loader = createAutoLayoutFrame('Loader', 'VERTICAL', 0, 16);
-  loader.primaryAxisAlignItems = 'CENTER';
-  loader.counterAxisAlignItems = 'CENTER';
-
-  const spinner = createRect(32, 32, colors.muted, 16);
-  loader.appendChild(spinner);
-
-  const text = createText('Loading...', 14, 'Regular', colors.mutedForeground);
-  loader.appendChild(text);
-
-  return loader;
+/**
+ * Check if page config has content sections defined
+ */
+function hasContentSections(pageConfig: WireframeConfig): boolean {
+  return Boolean(
+    pageConfig.structure?.contentSections &&
+    pageConfig.structure.contentSections.length > 0
+  );
 }
 
 // ============================================
-// PAGE GENERATORS
+// LEGACY PAGE GENERATORS (fallback)
 // ============================================
-
-function findOrCreateFrame(
-  name: string,
-  width: number,
-  height: number,
-  colors: ColorPalette
-): { frame: FrameNode; isNew: boolean } {
-  const existingFrames = figma.currentPage.findAll(
-    node => node.type === 'FRAME' && node.name === name
-  ) as FrameNode[];
-
-  if (existingFrames.length > 0) {
-    const frame = existingFrames[0];
-    while (frame.children.length > 0) {
-      frame.children[0].remove();
-    }
-    frame.resize(width, height);
-    frame.fills = [{ type: 'SOLID', color: colors.background }];
-    return { frame, isNew: false };
-  }
-
-  const frame = figma.createFrame();
-  frame.name = name;
-  frame.resize(width, height);
-  frame.fills = [{ type: 'SOLID', color: colors.background }];
-  return { frame, isNew: true };
-}
 
 /**
  * Generate login page wireframe
@@ -428,7 +220,7 @@ function generateLoginPage(
   // Form fields
   const emailField = createInputField('Email', 'name@example.com', 336, colors);
   loginCard.appendChild(emailField);
-  const passField = createInputField('Password', '••••••••', 336, colors);
+  const passField = createInputField('Password', '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022', 336, colors);
   loginCard.appendChild(passField);
 
   // Forgot password link
@@ -521,7 +313,7 @@ function generateDashboardPage(
   mainRow.resize(frameWidth - 160, 400);
 
   // Project Summary Card
-  const projectCard = createCard('Recent Projects', 700, 400, colors, radius);
+  const projectCard = createCard('Recent Projects', 700, 400, colors);
   const projectHeaders = ['Project', 'Status', 'Investment', 'IRR'];
   const projectRows = generateMockRows(projectHeaders, { rowCount: 4 });
   const projectTable = createTable(
@@ -534,7 +326,7 @@ function generateDashboardPage(
   mainRow.appendChild(projectCard);
 
   // Chart placeholder
-  const chartCard = createCard('Distribution Chart', 340, 400, colors, radius);
+  const chartCard = createCard('Distribution Chart', 340, 400, colors);
   const chartPlaceholder = createRect(292, 280, colors.muted, 8);
   chartCard.appendChild(chartPlaceholder);
   mainRow.appendChild(chartCard);
@@ -590,7 +382,7 @@ function generateWaterfallSummaryPage(
   setStroke(selector, colors.input);
   const selectText = createText('Oakwood Apartments', 14, 'Regular', colors.foreground);
   selector.appendChild(selectText);
-  const chevron = createText('▼', 10, 'Regular', colors.mutedForeground);
+  const chevron = createText('\u25BC', 10, 'Regular', colors.mutedForeground);
   selector.appendChild(chevron);
   selectorRow.appendChild(selector);
   const configBtn = createButton('Configure Project', 'outline', colors);
@@ -603,7 +395,7 @@ function generateWaterfallSummaryPage(
   content.appendChild(tabs);
 
   // Summary Card
-  const summaryCard = createCard('Distribution Summary', frameWidth - 160, 500, colors, radius);
+  const summaryCard = createCard('Distribution Summary', frameWidth - 160, 500, colors);
   const summaryHeaders = ['Entity', 'Contribution', 'Distribution', 'Rate', 'Multiple'];
   const summaryRows = generateMockRows(summaryHeaders, { rowCount: 6 });
   const summaryTable = createTable(
@@ -636,7 +428,13 @@ function generateLoadingState(
   centerContainer.primaryAxisAlignItems = 'CENTER';
   centerContainer.counterAxisAlignItems = 'CENTER';
 
-  const loader = createLoader(colors);
+  const loader = createAutoLayoutFrame('Loader', 'VERTICAL', 0, 16);
+  loader.primaryAxisAlignItems = 'CENTER';
+  loader.counterAxisAlignItems = 'CENTER';
+  const spinner = createRect(32, 32, colors.muted, 16);
+  loader.appendChild(spinner);
+  const text = createText('Loading...', 14, 'Regular', colors.mutedForeground);
+  loader.appendChild(text);
   centerContainer.appendChild(loader);
 
   frame.appendChild(centerContainer);
@@ -662,7 +460,7 @@ function generateAuthPromptState(
   centerContainer.primaryAxisAlignItems = 'CENTER';
   centerContainer.counterAxisAlignItems = 'CENTER';
 
-  const promptCard = createCard(null, 400, 200, colors, radius);
+  const promptCard = createCard(null, 400, 200, colors);
   promptCard.primaryAxisAlignItems = 'CENTER';
   promptCard.counterAxisAlignItems = 'CENTER';
 
@@ -702,7 +500,7 @@ function generateEmptyState(
   centerContainer.primaryAxisAlignItems = 'CENTER';
   centerContainer.counterAxisAlignItems = 'CENTER';
 
-  const emptyCard = createCard(null, 600, 250, colors, radius);
+  const emptyCard = createCard(null, 600, 250, colors);
   emptyCard.primaryAxisAlignItems = 'CENTER';
   emptyCard.counterAxisAlignItems = 'CENTER';
 
@@ -715,7 +513,7 @@ function generateEmptyState(
   const desc = createText('Create a project and complete setup to start calculating waterfall distributions.', 14, 'Regular', colors.mutedForeground);
   emptyCard.appendChild(desc);
 
-  const createBtn = createButton('Create Project →', 'default', colors);
+  const createBtn = createButton('Create Project \u2192', 'default', colors);
   emptyCard.appendChild(createBtn);
 
   centerContainer.appendChild(emptyCard);
@@ -754,7 +552,7 @@ function generateSettingsPage(
   content.appendChild(tabs);
 
   // Team Card
-  const teamCard = createCard(null, frameWidth - 160, 450, colors, radius);
+  const teamCard = createCard(null, frameWidth - 160, 450, colors);
 
   const cardHeader = createAutoLayoutFrame('CardHeader', 'HORIZONTAL', 0, 0);
   cardHeader.resize(frameWidth - 208, 50);
@@ -833,7 +631,7 @@ function generateProfilePage(
   content.appendChild(tabs);
 
   // Personal Info Card
-  const infoCard = createCard('Personal Information', frameWidth - 160, 280, colors, radius);
+  const infoCard = createCard('Personal Information', frameWidth - 160, 280, colors);
   const infoDesc = createText('Update your personal details and contact information', 14, 'Regular', colors.mutedForeground);
   infoCard.appendChild(infoDesc);
 
@@ -892,7 +690,7 @@ function generateProjectConfigPage(
 
   const leftHeader = createAutoLayoutFrame('Left', 'HORIZONTAL', 0, 12);
   leftHeader.counterAxisAlignItems = 'CENTER';
-  const backBtn = createText('←', 20, 'Regular', colors.foreground);
+  const backBtn = createText('\u2190', 20, 'Regular', colors.foreground);
   leftHeader.appendChild(backBtn);
   const titleCol = createAutoLayoutFrame('TitleCol', 'VERTICAL', 0, 2);
   const pageTitle = createText('Oakwood Apartments', 24, 'Semi Bold', colors.foreground);
@@ -914,7 +712,7 @@ function generateProjectConfigPage(
 
   // Content based on active tab
   if (activeTab === 'Details' || activeTab === 'Project Details') {
-    const formCard = createCard('Basic Information', frameWidth - 160, 300, colors, radius);
+    const formCard = createCard('Basic Information', frameWidth - 160, 300, colors);
 
     const fieldsRow = createAutoLayoutFrame('Fields', 'HORIZONTAL', 0, 24);
     const nameField = createInputField('Project Name', 'Oakwood Apartments', 400, colors);
@@ -930,7 +728,7 @@ function generateProjectConfigPage(
 
     content.appendChild(formCard);
   } else if (activeTab === 'Entities') {
-    const entitiesCard = createCard('Project Entities', frameWidth - 160, 400, colors, radius);
+    const entitiesCard = createCard('Project Entities', frameWidth - 160, 400, colors);
     const entitiesHeaders = ['Name', 'Type', 'Category', 'Contribution', 'Ownership %'];
     const entitiesRows = generateMockRows(entitiesHeaders, { rowCount: 3 });
     const entitiesTable = createTable(
@@ -942,7 +740,7 @@ function generateProjectConfigPage(
     entitiesCard.appendChild(entitiesTable);
     content.appendChild(entitiesCard);
   } else if (activeTab === 'Waterfall') {
-    const waterfallCard = createCard('Waterfall Tiers', frameWidth - 160, 400, colors, radius);
+    const waterfallCard = createCard('Waterfall Tiers', frameWidth - 160, 400, colors);
     const waterfallHeaders = ['Tier', 'Name', 'Threshold', 'Multiple', 'Rate %'];
     const waterfallRows = generateMockRows(waterfallHeaders, { rowCount: 4 });
     const waterfallTable = createTable(
@@ -956,6 +754,37 @@ function generateProjectConfigPage(
   }
 
   frame.appendChild(content);
+}
+
+// ============================================
+// FRAME MANAGEMENT
+// ============================================
+
+function findOrCreateFrame(
+  name: string,
+  width: number,
+  height: number,
+  colors: ColorPalette
+): { frame: FrameNode; isNew: boolean } {
+  const existingFrames = figma.currentPage.findAll(
+    node => node.type === 'FRAME' && node.name === name
+  ) as FrameNode[];
+
+  if (existingFrames.length > 0) {
+    const frame = existingFrames[0];
+    while (frame.children.length > 0) {
+      frame.children[0].remove();
+    }
+    frame.resize(width, height);
+    frame.fills = [{ type: 'SOLID', color: colors.background }];
+    return { frame, isNew: false };
+  }
+
+  const frame = figma.createFrame();
+  frame.name = name;
+  frame.resize(width, height);
+  frame.fills = [{ type: 'SOLID', color: colors.background }];
+  return { frame, isNew: true };
 }
 
 // ============================================
@@ -1008,46 +837,51 @@ export async function generateAllWireframes(
       updatedCount++;
     }
 
-    // Generate content based on page type and state
-    const pageName = pageConfig.name.toLowerCase();
-
-    if (pageName.includes('login') || pageName.includes('sign up')) {
-      generateLoginPage(frame, config);
-    } else if (pageName.includes('loading')) {
-      generateLoadingState(frame, config);
-    } else if (pageName.includes('not signed in')) {
-      generateAuthPromptState(frame, config, 'Please sign in to access this page.', 'alert');
-    } else if (pageName.includes('no organization')) {
-      generateAuthPromptState(frame, config, 'Please select or create an organization.', 'building');
-    } else if (pageName.includes('no projects') || pageName.includes('empty')) {
-      generateEmptyState(frame, config);
-    } else if (pageName.includes('dashboard') || pageName === 'dashboard') {
-      generateDashboardPage(frame, config);
-    } else if (pageName.includes('waterfall') && (pageName.includes('summary') || !pageName.includes('detail'))) {
-      generateWaterfallSummaryPage(frame, config);
-    } else if (pageName.includes('settings')) {
-      generateSettingsPage(frame, config);
-    } else if (pageName.includes('profile')) {
-      generateProfilePage(frame, config);
-    } else if (pageName.includes('config')) {
-      const tabMatch = pageName.match(/(\w+)\s+tab$/i);
-      const activeTab = tabMatch ? tabMatch[1] : 'Details';
-      generateProjectConfigPage(frame, config, activeTab);
+    // Check if page has contentSections defined - use config-driven generation
+    if (hasContentSections(pageConfig)) {
+      generateFromConfig(frame, pageConfig, config);
     } else {
-      // Generic page with navigation
-      createNavBar(frame, frameWidth, colors, branding, navItems);
-      const content = createAutoLayoutFrame('Content', 'VERTICAL', 24, 24);
-      content.x = 0;
-      content.y = 64;
-      content.resize(frameWidth, frameHeight - 64);
-      content.paddingLeft = 80;
-      content.paddingRight = 80;
-      content.paddingTop = 32;
+      // Fallback to legacy page-specific generators
+      const pageName = pageConfig.name.toLowerCase();
 
-      const title = createText(pageConfig.name.split('/').pop() || 'Page', 30, 'Bold', colors.foreground);
-      content.appendChild(title);
+      if (pageName.includes('login') || pageName.includes('sign up')) {
+        generateLoginPage(frame, config);
+      } else if (pageName.includes('loading')) {
+        generateLoadingState(frame, config);
+      } else if (pageName.includes('not signed in')) {
+        generateAuthPromptState(frame, config, 'Please sign in to access this page.', 'alert');
+      } else if (pageName.includes('no organization')) {
+        generateAuthPromptState(frame, config, 'Please select or create an organization.', 'building');
+      } else if (pageName.includes('no projects') || pageName.includes('empty')) {
+        generateEmptyState(frame, config);
+      } else if (pageName.includes('dashboard') || pageName === 'dashboard') {
+        generateDashboardPage(frame, config);
+      } else if (pageName.includes('waterfall') && (pageName.includes('summary') || !pageName.includes('detail'))) {
+        generateWaterfallSummaryPage(frame, config);
+      } else if (pageName.includes('settings')) {
+        generateSettingsPage(frame, config);
+      } else if (pageName.includes('profile')) {
+        generateProfilePage(frame, config);
+      } else if (pageName.includes('config')) {
+        const tabMatch = pageName.match(/(\w+)\s+tab$/i);
+        const activeTab = tabMatch ? tabMatch[1] : 'Details';
+        generateProjectConfigPage(frame, config, activeTab);
+      } else {
+        // Generic page with navigation
+        createNavBar(frame, frameWidth, colors, branding, navItems);
+        const content = createAutoLayoutFrame('Content', 'VERTICAL', 24, 24);
+        content.x = 0;
+        content.y = 64;
+        content.resize(frameWidth, frameHeight - 64);
+        content.paddingLeft = 80;
+        content.paddingRight = 80;
+        content.paddingTop = 32;
 
-      frame.appendChild(content);
+        const title = createText(pageConfig.name.split('/').pop() || 'Page', 30, 'Bold', colors.foreground);
+        content.appendChild(title);
+
+        frame.appendChild(content);
+      }
     }
 
     frames.push(frame);

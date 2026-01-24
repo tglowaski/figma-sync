@@ -6,6 +6,21 @@
  */
 
 /**
+ * Content section configuration for wireframe generation.
+ * Sections are rendered in order by registered section renderers.
+ */
+export interface ContentSection {
+  /** Section type - maps to a registered section renderer */
+  type: string;
+  /** Optional title override for the section */
+  title?: string;
+  /** Optional subtitle for headers */
+  subtitle?: string;
+  /** Section-specific configuration properties */
+  properties?: Record<string, unknown>;
+}
+
+/**
  * Page configuration for wireframe generation
  */
 export interface PageConfig {
@@ -15,6 +30,10 @@ export interface PageConfig {
   type: 'auth' | 'dashboard' | 'loading' | 'auth-prompt' | 'org-prompt' | 'empty' | 'waterfall' | 'config' | 'wizard' | 'settings' | 'profile' | 'generic';
   /** Optional state variant (e.g., "Summary", "Detail") */
   state?: string | null;
+  /** Content sections to render - drives configuration-based generation */
+  contentSections?: (ContentSection | string)[];
+  /** Whether to show navigation bar (default: true for non-auth pages) */
+  hasNavigation?: boolean;
 }
 
 /**
