@@ -317,3 +317,59 @@ Supported column types: name, person, email, phone, status, category, currency, 
 ## License
 
 Private - All rights reserved.
+
+---
+
+## Claude Code Integration (Optional)
+
+If you use [Claude Code](https://claude.ai/code), this plugin includes optional skills
+to help with configuration and customization.
+
+### Install Skills
+
+```bash
+cd figma-plugin
+npm run setup-claude
+```
+
+This copies the `figma-sync` skill and `figma-design-system` agent to your project.
+If Claude Code isn't detected, the script exits cleanly with setup instructions.
+
+### What You Get
+
+- **`figma-sync` skill** - Helps generate `project.config.json` by analyzing your codebase
+- **`figma-design-system` agent** - Specialized assistant for design system tasks
+
+### Usage Examples
+
+```
+# Ask Claude to generate a config
+"Generate a Figma Sync config for my Next.js project"
+
+# Get help with custom sections
+"How do I create a custom section renderer for a Kanban board?"
+
+# Debug token issues
+"My colors aren't being imported correctly from globals.css"
+
+# Add new page wireframes
+"Add wireframe configurations for the new checkout flow"
+```
+
+### Skill Documentation
+
+After installation, documentation is available at:
+
+- `.claude/skills/figma-sync/SKILL.md` - Configuration reference
+- `.claude/skills/figma-sync/AGENTS.md` - Agent integration guide
+- `.claude/skills/figma-sync/rules/` - Detailed detection rules
+
+### Manual Installation
+
+If the setup script doesn't work, you can manually copy:
+
+```bash
+# From figma-plugin directory
+cp -r .claude/skills/figma-sync ../.claude/skills/
+cp -r .claude/agents ../.claude/
+```
