@@ -1,8 +1,16 @@
 /**
  * Classification Rules
  *
- * Defines the ruleset for classifying imports as Variables, Components, or Wireframes
+ * Defines the ruleset for classifying imports as Variables, Components, or Wireframes.
+ *
+ * v2.0.0 - Framework-agnostic support
+ * These rules provide backward compatibility with direct imports while
+ * also supporting the new parser-based system for multi-framework support.
+ * For framework-specific behavior, use the parsers in src/parsers/ instead.
  */
+
+import type { FrameworkParser } from '../parsers/parser-interface';
+import type { PageType } from '../config/framework-presets';
 
 // ============================================
 // VARIABLE RULES
@@ -475,4 +483,91 @@ export function extractCvaVariants(content: string): Record<string, string[]> {
   }
 
   return variants;
+}
+
+// ============================================
+// FRAMEWORK-AWARE FUNCTIONS
+// ============================================
+
+/**
+ * Check if a component file should be included using a framework parser
+ * Falls back to the default React/Next.js rules if no parser is provided
+ */
+export function shouldIncludeComponentWithParser(
+  filePath: string,
+  content: string,
+  parser?: FrameworkParser
+): boolean {
+  if (parser) {
+    return parser.shouldIncludeComponent(filePath, content);
+  }
+  // Fallback to default behavior
+  return shouldIncludeComponent(filePath, content);
+}
+
+/**
+ * Check if a page file should be included using a framework parser
+ * Falls back to the default React/Next.js rules if no parser is provided
+ */
+export function shouldIncludeWireframeWithParser(
+  filePath: string,
+  parser?: FrameworkParser
+): boolean {
+  if (parser) {
+    return parser.shouldIncludePage(filePath);
+  }
+  // Fallback to default behavior
+  return shouldIncludeWireframe(filePath);
+}
+
+/**
+ * Detect page type using a framework parser
+ * Falls back to the default detection if no parser is provided
+ */
+export function detectPageTypeWithParser(
+  filePath: string,
+  content: string,
+  parser?: FrameworkParser
+): PageType {
+  if (parser) {
+    return parser.detectPageType(filePath, content);
+  }
+  // Fallback to default behavior
+  return detectPageType(filePath, content);
+}
+
+/**
+ * Extract variants using a framework parser
+ * Falls back to CVA extraction if no parser is provided
+ */
+export function extractVariantsWithParser(
+  content: string,
+  parser?: FrameworkParser
+): Record<string, string[]> {
+  if (parser) {
+    return parser.extractVariants(content);
+  }
+  // Fallback to CVA extraction
+  return extractCvaVariants(content);
+}
+
+/**
+ * Generate wireframe name using a framework parser
+ * Falls back to the default generation if no parser is provided
+ */
+export function generateWireframeNameWithParser(
+  filePath: string,
+  state?: string,
+  parser?: FrameworkParser
+): string {
+  if (parser) {
+    const pageType = parser.detectPageType(filePath, '');
+    let name = parser.generateWireframeName(filePath, pageType);
+    if (state) {
+      name += ' / ' + state;
+    }
+    return name;
+  }
+  // Fallback to default behavior
+  return generateWireframeName(filePath, state);
 }

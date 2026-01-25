@@ -1,10 +1,15 @@
 /**
  * Token Parser
  *
- * Parses CSS custom properties and design tokens from source files
+ * Parses CSS custom properties and design tokens from source files.
+ * Supports multiple token formats:
+ * - CSS custom properties (globals.css)
+ * - Style Dictionary JSON format
  */
 
 import { parseCssColor, RGB } from '../utils/figma-helpers';
+import { parseStyleDictionaryTokens } from './style-dictionary-parser';
+import type { TokenFormat } from '../config/framework-presets';
 
 // ============================================
 // TYPES
@@ -341,14 +346,77 @@ function getColorDescription(name: string): string {
 }
 
 // ============================================
+// FORMAT DETECTION
+// ============================================
+
+/**
+ * Detect the token format from content
+ *
+ * @param content Token file content
+ * @param filePath Optional file path for extension-based detection
+ * @returns Detected token format
+ */
+export function detectTokenFormat(content: string, filePath?: string): TokenFormat {
+  // Check file extension first
+  if (filePath) {
+    if (filePath.endsWith('.json')) {
+      return 'style-dictionary';
+    }
+    if (filePath.endsWith('.css') || filePath.endsWith('.scss') || filePath.endsWith('.sass')) {
+      return 'css';
+    }
+  }
+
+  // Try to detect from content
+  const trimmed = content.trim();
+
+  // JSON detection
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      JSON.parse(content);
+      return 'style-dictionary';
+    } catch {
+      // Not valid JSON, fall through
+    }
+  }
+
+  // CSS detection (has CSS custom property patterns)
+  if (/--[\w-]+\s*:\s*[^;]+;/.test(content) || /:root\s*\{/.test(content)) {
+    return 'css';
+  }
+
+  // Default to CSS for backward compatibility
+  return 'css';
+}
+
+// ============================================
 // FULL TOKEN EXTRACTION
 // ============================================
 
 /**
- * Extract all tokens from CSS content and merge with defaults
+ * Extract all tokens from content and merge with defaults
+ *
+ * @param content Token file content
+ * @param format Token format (auto-detected if not provided)
+ * @param filePath Optional file path for format detection
+ * @returns Parsed tokens
  */
-export function extractAllTokens(cssContent: string): ParsedTokens {
-  const parsed = parseCssTokens(cssContent);
+export function extractAllTokens(
+  content: string,
+  format?: TokenFormat,
+  filePath?: string
+): ParsedTokens {
+  // Detect format if not provided
+  const tokenFormat = format || detectTokenFormat(content, filePath);
+
+  // Parse based on format
+  let parsed: ParsedTokens;
+
+  if (tokenFormat === 'style-dictionary') {
+    parsed = parseStyleDictionaryTokens(content);
+  } else {
+    parsed = parseCssTokens(content);
+  }
 
   // Add default spacing if not found
   if (parsed.spacing.length === 0) {
@@ -369,4 +437,15 @@ export function extractAllTokens(cssContent: string): ParsedTokens {
   parsed.componentSizes = getDefaultComponentSizes();
 
   return parsed;
+}
+
+/**
+ * Parse tokens from content (legacy function for backward compatibility)
+ *
+ * @param cssContent Token file content (CSS or JSON)
+ * @returns Parsed tokens
+ * @deprecated Use extractAllTokens with format parameter instead
+ */
+export function parseTokens(cssContent: string): ParsedTokens {
+  return extractAllTokens(cssContent);
 }

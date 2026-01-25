@@ -3,6 +3,9 @@
  *
  * Figma Plugin entry point that handles all commands.
  * Configuration-driven to support different projects.
+ *
+ * v2.0.0 - Framework-agnostic support
+ * Supports: React/Next.js, Vue/Nuxt, Angular, Plain HTML
  */
 
 import { extractAllTokens } from './parsers/token-parser';
@@ -12,6 +15,9 @@ import { generateAllVariables } from './generators/variable-generator';
 import { generateAllComponents, defaultColors, defaultRadius, ColorPalette } from './generators/component-generator';
 import { generateAllWireframes } from './generators/wireframe-generator';
 import { PluginConfig, mergeConfig, DEFAULT_CONFIG } from './config/schema';
+import { createParser, getSupportedFrameworks } from './parsers/parser-factory';
+import { getFrameworkPreset, getFrameworkDisplayNames } from './config/presets';
+import type { FrameworkType } from './config/framework-presets';
 
 // ============================================
 // CONFIGURATION
@@ -24,6 +30,13 @@ const USER_CONFIG: Partial<PluginConfig> = {
   // Override with your project values:
   // name: 'MyApp',
   // prefix: 'MyApp',
+  // framework: 'react-nextjs', // Options: 'react-nextjs' | 'vue-nuxt' | 'angular' | 'html-static'
+  // tokenFormat: 'css',        // Options: 'css' | 'style-dictionary'
+  // sources: {
+  //   tokens: 'app/globals.css',
+  //   components: 'components',
+  //   pages: 'app'
+  // },
   // branding: {
   //   logoText: 'MyApp',
   //   tagline: 'Your application tagline',
@@ -48,8 +61,14 @@ const CONFIG = {
   spacing: PLUGIN_CONFIG.spacing,
   columns: PLUGIN_CONFIG.columns,
   branding: PLUGIN_CONFIG.branding,
-  navItems: PLUGIN_CONFIG.navItems
+  navItems: PLUGIN_CONFIG.navItems,
+  framework: PLUGIN_CONFIG.framework || 'react-nextjs',
+  tokenFormat: PLUGIN_CONFIG.tokenFormat || 'css'
 };
+
+// Create parser for the configured framework
+const FRAMEWORK = CONFIG.framework as FrameworkType;
+const PARSER = createParser(FRAMEWORK);
 
 // ============================================
 // CSS CONTENT (inline for Figma plugin)
@@ -133,8 +152,8 @@ const CSS_TOKENS = `
 
 async function createVariables(): Promise<void> {
   try {
-    console.log('Parsing CSS tokens...');
-    const tokens = extractAllTokens(CSS_TOKENS);
+    console.log(`Parsing tokens (format: ${CONFIG.tokenFormat})...`);
+    const tokens = extractAllTokens(CSS_TOKENS, CONFIG.tokenFormat as any);
 
     console.log('Generating Figma variables...');
     const result = await generateAllVariables(tokens, CONFIG.prefix);
@@ -249,15 +268,24 @@ async function syncAll(): Promise<void> {
 
 async function loadConfig(): Promise<void> {
   try {
+    // Get framework info
+    const frameworkPreset = getFrameworkPreset(FRAMEWORK);
+    const supportedFrameworks = getFrameworkDisplayNames();
+
     // In a real implementation, this would load from project.config.json
     // For now, just show the current configuration
     const configSummary = [
       `Project: ${CONFIG.prefix}`,
+      `Framework: ${frameworkPreset.name}`,
+      `Token Format: ${CONFIG.tokenFormat}`,
       `Frame size: ${CONFIG.frameWidth}x${CONFIG.frameHeight}`,
       `Grid: ${CONFIG.columns} columns, ${CONFIG.spacing}px spacing`,
       '',
+      'Supported Frameworks:',
+      ...supportedFrameworks.map(f => `  - ${f.id}: ${f.name}`),
+      '',
       'Available commands:',
-      '- Create Variables: Design tokens from CSS',
+      '- Create Variables: Design tokens from CSS/JSON',
       '- Create Components: UI component library',
       '- Create Wireframes: Full page designs',
       '- Sync All: Run all commands in sequence'
@@ -335,5 +363,7 @@ export {
   createWireframes,
   syncAll,
   loadConfig,
-  CONFIG
+  CONFIG,
+  PARSER,
+  FRAMEWORK
 };

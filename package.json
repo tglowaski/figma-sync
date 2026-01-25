@@ -1,7 +1,7 @@
 {
   "name": "figma-sync",
-  "version": "1.0.0",
-  "description": "A reusable Figma plugin framework that automatically imports Next.js/React codebases into Figma with design tokens, components, and wireframes.",
+  "version": "2.0.0",
+  "description": "A framework-agnostic Figma plugin that automatically imports frontend codebases into Figma with design tokens, components, and wireframes. Supports React/Next.js, Vue/Nuxt, Angular, and plain HTML/CSS.",
   "main": "dist/code.js",
   "scripts": {
     "build": "esbuild src/main.ts --bundle --outfile=dist/code.js --target=es2017 --format=iife --minify",
@@ -20,7 +20,12 @@
     "design-tokens",
     "wireframes",
     "react",
-    "nextjs"
+    "nextjs",
+    "vue",
+    "nuxt",
+    "angular",
+    "style-dictionary",
+    "framework-agnostic"
   ],
   "author": "",
   "license": "UNLICENSED",

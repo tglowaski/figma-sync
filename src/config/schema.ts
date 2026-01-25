@@ -5,6 +5,8 @@
  * This allows the plugin to be reused across different projects.
  */
 
+import type { FrameworkType, TokenFormat, SourceOverrides } from './framework-presets';
+
 /**
  * Content section configuration for wireframe generation.
  * Sections are rendered in order by registered section renderers.
@@ -80,6 +82,12 @@ export interface PluginConfig {
   navItems?: NavItem[];
   /** Custom wireframe pages (optional, uses defaults if not provided) */
   pages?: PageConfig[];
+  /** Framework preset (default: 'react-nextjs' for backward compatibility) */
+  framework?: FrameworkType;
+  /** Custom source path overrides */
+  sources?: SourceOverrides;
+  /** Token file format (default: 'css' for backward compatibility) */
+  tokenFormat?: TokenFormat;
 }
 
 /**
@@ -131,7 +139,9 @@ export const DEFAULT_CONFIG: PluginConfig = {
     description: 'Application description'
   },
   navItems: DEFAULT_NAV_ITEMS,
-  pages: DEFAULT_PAGES
+  pages: DEFAULT_PAGES,
+  framework: 'react-nextjs',
+  tokenFormat: 'css'
 };
 
 /**
@@ -146,7 +156,12 @@ export function mergeConfig(userConfig: Partial<PluginConfig>): PluginConfig {
       ...(userConfig.branding || {})
     },
     navItems: userConfig.navItems || DEFAULT_CONFIG.navItems,
-    pages: userConfig.pages || DEFAULT_CONFIG.pages
+    pages: userConfig.pages || DEFAULT_CONFIG.pages,
+    framework: userConfig.framework || DEFAULT_CONFIG.framework,
+    tokenFormat: userConfig.tokenFormat || DEFAULT_CONFIG.tokenFormat,
+    sources: userConfig.sources ? {
+      ...userConfig.sources
+    } : undefined
   };
 }
 

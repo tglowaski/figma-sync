@@ -1,13 +1,28 @@
-# Figma Sync
+# Figma Sync v2.0
 
-A reusable Figma plugin framework that automatically imports Next.js/React codebases into Figma with design tokens, components, and wireframes.
+A **framework-agnostic** Figma plugin that automatically imports frontend codebases into Figma with design tokens, components, and wireframes.
+
+## Supported Frameworks
+
+| Framework | Pages | Components | Tokens |
+|-----------|-------|------------|--------|
+| **React / Next.js** | `app/**/page.tsx`, `pages/**/*.tsx` | `components/**/*.tsx` | CSS variables |
+| **Vue / Nuxt** | `pages/**/*.vue`, `src/views/**/*.vue` | `components/**/*.vue` | CSS/SCSS |
+| **Angular** | `src/app/**/*.component.ts` | `src/app/shared/**/*.component.ts` | SCSS/CSS |
+| **Plain HTML** | `**/*.html`, `pages/**/*.html` | `components/**/*.html` | CSS |
+
+## Token Formats
+
+- **CSS Custom Properties** - Standard CSS variables (`:root { --color-primary: ... }`)
+- **Style Dictionary JSON** - Cross-platform token format (`{ "color": { "primary": { "value": "#..." } } }`)
 
 ## Features
 
-- **Design Tokens**: Automatically parse CSS variables and create Figma variables with light/dark mode support
+- **Design Tokens**: Automatically parse CSS variables or Style Dictionary JSON and create Figma variables with light/dark mode support
 - **Component Library**: Generate a comprehensive UI component library (buttons, inputs, cards, etc.)
 - **Page Wireframes**: Create full-page wireframe designs with navigation, forms, tables, and more
 - **Configuration-Driven**: Easily customize for any project via JSON configuration
+- **Framework Detection**: Auto-detect framework from project structure or configure manually
 - **Generic Mock Data**: Intelligent mock data generation based on column headers
 
 ## Quick Start
@@ -51,6 +66,13 @@ The plugin is configuration-driven. Modify `src/main.ts` to customize for your p
 const USER_CONFIG: Partial<PluginConfig> = {
   name: 'MyApp',
   prefix: 'MyApp',
+  framework: 'react-nextjs',  // or 'vue-nuxt', 'angular', 'html-static'
+  tokenFormat: 'css',         // or 'style-dictionary'
+  sources: {
+    tokens: 'app/globals.css',     // Custom token file path
+    components: 'components',       // Custom components directory
+    pages: 'app'                    // Custom pages directory
+  },
   branding: {
     logoText: 'MyApp',
     tagline: 'Your app description',
@@ -65,20 +87,75 @@ const USER_CONFIG: Partial<PluginConfig> = {
 
 ### Configuration Options
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `name` | string | Project name (used in UI) |
-| `prefix` | string | Variable prefix for Figma collections |
-| `frameWidth` | number | Wireframe width (default: 1440) |
-| `frameHeight` | number | Wireframe height (default: 900) |
-| `spacing` | number | Grid spacing between frames (default: 100) |
-| `columns` | number | Grid columns (default: 3) |
-| `branding.logoText` | string | Text displayed next to logo icon |
-| `branding.tagline` | string | Optional tagline |
-| `navItems` | array | Navigation items for nav bar |
-| `pages` | array | Custom wireframe page configurations |
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `name` | string | `'MyApp'` | Project name (used in UI) |
+| `prefix` | string | `'MyApp'` | Variable prefix for Figma collections |
+| `framework` | string | `'react-nextjs'` | Framework preset (see table above) |
+| `tokenFormat` | string | `'css'` | Token format: `'css'` or `'style-dictionary'` |
+| `sources.tokens` | string | - | Custom token file path |
+| `sources.components` | string | - | Custom components directory |
+| `sources.pages` | string | - | Custom pages directory |
+| `frameWidth` | number | `1440` | Wireframe width |
+| `frameHeight` | number | `900` | Wireframe height |
+| `spacing` | number | `100` | Grid spacing between frames |
+| `columns` | number | `3` | Grid columns |
+| `branding.logoText` | string | - | Text displayed next to logo icon |
+| `branding.tagline` | string | - | Optional tagline |
+| `navItems` | array | - | Navigation items for nav bar |
+| `pages` | array | - | Custom wireframe page configurations |
 
-### Example Configurations
+### Framework-Specific Examples
+
+**React / Next.js (default)**:
+```typescript
+{
+  framework: 'react-nextjs',
+  tokenFormat: 'css',
+  sources: {
+    tokens: 'app/globals.css',
+    components: 'components/ui',
+    pages: 'app'
+  }
+}
+```
+
+**Vue / Nuxt**:
+```typescript
+{
+  framework: 'vue-nuxt',
+  tokenFormat: 'css',
+  sources: {
+    tokens: 'assets/css/main.css',
+    components: 'components',
+    pages: 'pages'
+  }
+}
+```
+
+**Angular**:
+```typescript
+{
+  framework: 'angular',
+  tokenFormat: 'css',
+  sources: {
+    tokens: 'src/styles.scss',
+    components: 'src/app/shared',
+    pages: 'src/app'
+  }
+}
+```
+
+**Style Dictionary (any framework)**:
+```typescript
+{
+  framework: 'react-nextjs',
+  tokenFormat: 'style-dictionary',
+  sources: {
+    tokens: 'tokens/tokens.json'
+  }
+}
+```
 
 See `src/parsers/page-parser.ts` for page configuration examples.
 
@@ -114,11 +191,22 @@ figma-sync/
 ├── src/
 │   ├── main.ts             # Entry point with configuration
 │   ├── config/
-│   │   └── schema.ts       # Configuration type definitions
+│   │   ├── schema.ts            # Configuration type definitions
+│   │   ├── framework-presets.ts # Framework type definitions
+│   │   └── presets/
+│   │       └── index.ts         # Framework preset implementations
 │   ├── parsers/
-│   │   ├── token-parser.ts    # CSS variable parsing
+│   │   ├── token-parser.ts          # CSS variable parsing
+│   │   ├── style-dictionary-parser.ts # Style Dictionary JSON parsing
 │   │   ├── component-parser.ts
-│   │   └── page-parser.ts     # Page configurations
+│   │   ├── page-parser.ts           # Page configurations
+│   │   ├── parser-interface.ts      # Abstract parser interface
+│   │   ├── base-parser.ts           # Shared parser functionality
+│   │   ├── parser-factory.ts        # Parser factory
+│   │   ├── react-parser.ts          # React/Next.js parser
+│   │   ├── vue-parser.ts            # Vue/Nuxt parser
+│   │   ├── angular-parser.ts        # Angular parser
+│   │   └── html-parser.ts           # Plain HTML parser
 │   ├── generators/
 │   │   ├── variable-generator.ts   # Figma variables
 │   │   ├── component-generator.ts  # UI components
@@ -127,7 +215,7 @@ figma-sync/
 │   ├── utils/
 │   │   └── figma-helpers.ts
 │   ├── rules/
-│   │   └── classification-rules.ts
+│   │   └── classification-rules.ts # Classification rules (with parser delegation)
 │   └── mock-data/
 │       ├── index.ts
 │       ├── generator.ts    # Mock data generation
