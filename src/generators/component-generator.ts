@@ -822,36 +822,383 @@ function createGenericSldsComponent(
     .map(([k, v]) => `${k}=${v}`)
     .join(', ') || 'default';
 
-  const frame = createAutoLayoutFrame(
-    `${component.name}/${variantLabel}`,
-    'VERTICAL', 12, 8
-  );
+  // Route to category-specific renderers for richer visuals
+  switch (component.category) {
+    case 'form-controls':
+      return createGenericFormComponent(component, variantValues, variantLabel, colors, radius);
+    case 'data-display':
+      return createGenericDataComponent(component, variantValues, variantLabel, colors, radius);
+    case 'feedback':
+      return createGenericFeedbackComponent(component, variantValues, variantLabel, colors, radius);
+    case 'navigation':
+      return createGenericNavComponent(component, variantValues, variantLabel, colors, radius);
+    case 'layout':
+      return createGenericLayoutComponent(component, variantValues, variantLabel, colors, radius);
+    case 'overlay':
+      return createGenericOverlayComponent(component, variantValues, variantLabel, colors, radius);
+    default:
+      return createGenericCardComponent(component, variantValues, variantLabel, colors, radius);
+  }
+}
+
+/** Generic card wrapper with header used by all category renderers */
+function createComponentFrame(
+  name: string, variantLabel: string, width: number, height: number,
+  colors: ColorPalette, radius: typeof defaultRadius
+): FrameNode {
+  const frame = createAutoLayoutFrame(`${name}/${variantLabel}`, 'VERTICAL', 16, 12);
   frame.cornerRadius = radius.lg;
   frame.fills = [{ type: 'SOLID', color: colors.card }];
   setStroke(frame, colors.border);
-  frame.resize(280, 100);
+  setShadow(frame, 'sm');
+  frame.resize(width, height);
+  return frame;
+}
 
-  // Component name
-  const nameText = createText(component.name, 14, 'Semi Bold', colors.foreground);
-  frame.appendChild(nameText);
+/** Add a component title bar */
+function addComponentHeader(parent: FrameNode, name: string, colors: ColorPalette, radius: typeof defaultRadius): void {
+  const header = createAutoLayoutFrame('Header', 'HORIZONTAL', 0, 8);
+  header.counterAxisAlignItems = 'CENTER';
+  const icon = createRect(18, 18, colors.primary, 4);
+  header.appendChild(icon);
+  const title = createText(name, 13, 'Semi Bold', colors.foreground);
+  header.appendChild(title);
+  parent.appendChild(header);
+}
 
-  // Variant info
-  if (variantLabel !== 'default') {
-    const variantText = createText(variantLabel, 11, 'Regular', colors.mutedForeground);
-    frame.appendChild(variantText);
+/** Form component: renders labeled fields + buttons */
+function createGenericFormComponent(
+  component: ParsedComponent, variantValues: Record<string, string>,
+  variantLabel: string, colors: ColorPalette, radius: typeof defaultRadius
+): FrameNode {
+  const mode = variantValues.mode || variantValues.layout || 'edit';
+  const frame = createComponentFrame(component.name, variantLabel, 320, 260, colors, radius);
+  addComponentHeader(frame, component.name, colors, radius);
+
+  // Separator
+  const sep = createRect(288, 1, colors.border, 0);
+  frame.appendChild(sep);
+
+  // Form fields
+  const fieldNames = ['First Name', 'Last Name', 'Email'];
+  for (const fieldName of fieldNames) {
+    const fieldGroup = createAutoLayoutFrame(fieldName, 'VERTICAL', 0, 4);
+    const label = createText(fieldName, 11, 'Medium', colors.mutedForeground);
+    fieldGroup.appendChild(label);
+
+    const input = createAutoLayoutFrame('Input', 'HORIZONTAL', 0, 0);
+    input.paddingLeft = 10;
+    input.paddingRight = 10;
+    input.paddingTop = 6;
+    input.paddingBottom = 6;
+    input.resize(288, 32);
+    input.cornerRadius = radius.md;
+    input.fills = [{ type: 'SOLID', color: colors.background }];
+    setStroke(input, colors.input);
+
+    const placeholder = mode === 'view'
+      ? createText('Value', 12, 'Regular', colors.foreground)
+      : createText(`Enter ${fieldName.toLowerCase()}...`, 12, 'Regular', colors.mutedForeground);
+    input.appendChild(placeholder);
+    fieldGroup.appendChild(input);
+    frame.appendChild(fieldGroup);
   }
 
-  // Category badge
-  const categoryFrame = createAutoLayoutFrame('Category', 'HORIZONTAL', 0, 0);
-  categoryFrame.paddingLeft = 6;
-  categoryFrame.paddingRight = 6;
-  categoryFrame.paddingTop = 2;
-  categoryFrame.paddingBottom = 2;
-  categoryFrame.cornerRadius = radius.sm;
-  categoryFrame.fills = [{ type: 'SOLID', color: colors.muted }];
-  const categoryText = createText(component.category, 10, 'Medium', colors.mutedForeground);
-  categoryFrame.appendChild(categoryText);
-  frame.appendChild(categoryFrame);
+  // Action buttons
+  const btnRow = createAutoLayoutFrame('Actions', 'HORIZONTAL', 0, 8);
+  const saveBtn = createAutoLayoutFrame('Save', 'HORIZONTAL', 0, 0);
+  saveBtn.paddingLeft = 16;
+  saveBtn.paddingRight = 16;
+  saveBtn.paddingTop = 6;
+  saveBtn.paddingBottom = 6;
+  saveBtn.cornerRadius = radius.md;
+  saveBtn.fills = [{ type: 'SOLID', color: colors.primary }];
+  saveBtn.appendChild(createText('Save', 12, 'Medium', colors.primaryForeground));
+  btnRow.appendChild(saveBtn);
+
+  const cancelBtn = createAutoLayoutFrame('Cancel', 'HORIZONTAL', 0, 0);
+  cancelBtn.paddingLeft = 16;
+  cancelBtn.paddingRight = 16;
+  cancelBtn.paddingTop = 6;
+  cancelBtn.paddingBottom = 6;
+  cancelBtn.cornerRadius = radius.md;
+  cancelBtn.fills = [{ type: 'SOLID', color: colors.background }];
+  setStroke(cancelBtn, colors.border);
+  cancelBtn.appendChild(createText('Cancel', 12, 'Medium', colors.foreground));
+  btnRow.appendChild(cancelBtn);
+  frame.appendChild(btnRow);
+
+  return frame;
+}
+
+/** Data display component: renders as a card with table rows or data content */
+function createGenericDataComponent(
+  component: ParsedComponent, variantValues: Record<string, string>,
+  variantLabel: string, colors: ColorPalette, radius: typeof defaultRadius
+): FrameNode {
+  const lowerName = component.name.toLowerCase();
+  const isTable = lowerName.includes('table') || lowerName.includes('data') || lowerName.includes('list');
+  const frame = createComponentFrame(component.name, variantLabel, isTable ? 400 : 320, isTable ? 240 : 180, colors, radius);
+  addComponentHeader(frame, component.name, colors, radius);
+
+  const sep = createRect(isTable ? 368 : 288, 1, colors.border, 0);
+  frame.appendChild(sep);
+
+  if (isTable) {
+    // Table header row
+    const headerRow = createAutoLayoutFrame('TableHeader', 'HORIZONTAL', 0, 0);
+    headerRow.fills = [{ type: 'SOLID', color: colors.muted }];
+    headerRow.paddingTop = 6;
+    headerRow.paddingBottom = 6;
+    headerRow.paddingLeft = 10;
+    headerRow.paddingRight = 10;
+    const headers = ['Name', 'Status', 'Date', 'Amount'];
+    for (const h of headers) {
+      const cell = createAutoLayoutFrame(h, 'HORIZONTAL', 0, 0);
+      cell.resize(85, 20);
+      cell.appendChild(createText(h, 11, 'Semi Bold', colors.foreground));
+      headerRow.appendChild(cell);
+    }
+    frame.appendChild(headerRow);
+
+    // Data rows
+    const rowData = [
+      ['Acme Corp', 'Active', '2024-01-15', '$12,500'],
+      ['Global Inc', 'Pending', '2024-01-14', '$8,200'],
+      ['Tech Co', 'Closed', '2024-01-13', '$24,800']
+    ];
+    for (const row of rowData) {
+      const dataRow = createAutoLayoutFrame('Row', 'HORIZONTAL', 0, 0);
+      dataRow.paddingTop = 6;
+      dataRow.paddingBottom = 6;
+      dataRow.paddingLeft = 10;
+      dataRow.paddingRight = 10;
+      for (const cellVal of row) {
+        const cell = createAutoLayoutFrame('Cell', 'HORIZONTAL', 0, 0);
+        cell.resize(85, 20);
+        cell.appendChild(createText(cellVal, 11, 'Regular', colors.foreground));
+        dataRow.appendChild(cell);
+      }
+      frame.appendChild(dataRow);
+      const rowSep = createRect(368, 1, colors.border, 0);
+      frame.appendChild(rowSep);
+    }
+  } else {
+    // Card-style content
+    const body = createAutoLayoutFrame('Body', 'VERTICAL', 12, 8);
+    body.appendChild(createText('Content area with component data', 13, 'Regular', colors.mutedForeground));
+
+    // Show variant-specific content hints
+    for (const [key, val] of Object.entries(variantValues)) {
+      const propRow = createAutoLayoutFrame(key, 'HORIZONTAL', 0, 6);
+      propRow.appendChild(createText(key + ':', 11, 'Medium', colors.mutedForeground));
+      propRow.appendChild(createText(val, 11, 'Regular', colors.foreground));
+      body.appendChild(propRow);
+    }
+    frame.appendChild(body);
+
+    // Footer with action
+    const footer = createAutoLayoutFrame('Footer', 'HORIZONTAL', 0, 8);
+    const actionBtn = createAutoLayoutFrame('Action', 'HORIZONTAL', 0, 0);
+    actionBtn.paddingLeft = 12;
+    actionBtn.paddingRight = 12;
+    actionBtn.paddingTop = 4;
+    actionBtn.paddingBottom = 4;
+    actionBtn.cornerRadius = radius.md;
+    actionBtn.fills = [{ type: 'SOLID', color: colors.primary }];
+    actionBtn.appendChild(createText('View Details', 11, 'Medium', colors.primaryForeground));
+    footer.appendChild(actionBtn);
+    frame.appendChild(footer);
+  }
+
+  return frame;
+}
+
+/** Feedback component: renders as a notification/toast/alert */
+function createGenericFeedbackComponent(
+  component: ParsedComponent, variantValues: Record<string, string>,
+  variantLabel: string, colors: ColorPalette, radius: typeof defaultRadius
+): FrameNode {
+  const severity = variantValues.severity || variantValues.variant || 'info';
+  const severityColors: Record<string, { bg: RGB; fg: RGB; accent: RGB }> = {
+    info: { bg: { r: 0.93, g: 0.95, b: 1.0 }, fg: colors.foreground, accent: colors.primary },
+    success: { bg: { r: 0.92, g: 0.97, b: 0.93 }, fg: colors.foreground, accent: colors.accent },
+    warning: { bg: { r: 1.0, g: 0.96, b: 0.88 }, fg: colors.foreground, accent: { r: 0.996, g: 0.576, b: 0.224 } },
+    error: { bg: { r: 1.0, g: 0.92, b: 0.92 }, fg: colors.foreground, accent: colors.destructive }
+  };
+  const sColors = severityColors[severity] || severityColors.info;
+
+  const frame = createAutoLayoutFrame(`${component.name}/${variantLabel}`, 'HORIZONTAL', 0, 12);
+  frame.paddingLeft = 16;
+  frame.paddingRight = 16;
+  frame.paddingTop = 12;
+  frame.paddingBottom = 12;
+  frame.cornerRadius = radius.md;
+  frame.fills = [{ type: 'SOLID', color: sColors.bg }];
+  frame.resize(360, 72);
+  frame.counterAxisAlignItems = 'CENTER';
+
+  // Severity icon
+  const icon = createRect(20, 20, sColors.accent, 10);
+  frame.appendChild(icon);
+
+  // Text content
+  const textGroup = createAutoLayoutFrame('Text', 'VERTICAL', 0, 2);
+  textGroup.layoutGrow = 1;
+  const title = variantValues.title || component.name;
+  textGroup.appendChild(createText(title, 13, 'Semi Bold', sColors.fg));
+  textGroup.appendChild(createText('Notification message content', 12, 'Regular', colors.mutedForeground));
+  frame.appendChild(textGroup);
+
+  // Dismiss button
+  if (variantValues.dismissible !== 'false') {
+    const closeBtn = createAutoLayoutFrame('Close', 'HORIZONTAL', 0, 0);
+    closeBtn.counterAxisAlignItems = 'CENTER';
+    closeBtn.primaryAxisAlignItems = 'CENTER';
+    closeBtn.resize(20, 20);
+    closeBtn.appendChild(createText('×', 16, 'Regular', colors.mutedForeground));
+    frame.appendChild(closeBtn);
+  }
+
+  return frame;
+}
+
+/** Navigation component */
+function createGenericNavComponent(
+  component: ParsedComponent, variantValues: Record<string, string>,
+  variantLabel: string, colors: ColorPalette, radius: typeof defaultRadius
+): FrameNode {
+  const frame = createComponentFrame(component.name, variantLabel, 360, 48, colors, radius);
+  frame.layoutMode = 'HORIZONTAL';
+  frame.counterAxisAlignItems = 'CENTER';
+  frame.paddingTop = 0;
+  frame.paddingBottom = 0;
+
+  const tabs = ['Tab 1', 'Tab 2', 'Tab 3'];
+  for (let i = 0; i < tabs.length; i++) {
+    const tab = createAutoLayoutFrame(tabs[i], 'VERTICAL', 0, 0);
+    tab.paddingLeft = 16;
+    tab.paddingRight = 16;
+    tab.paddingTop = 12;
+    tab.paddingBottom = 12;
+    const isActive = i === 0;
+    tab.appendChild(createText(tabs[i], 13, isActive ? 'Semi Bold' : 'Regular',
+      isActive ? colors.primary : colors.mutedForeground));
+    if (isActive) {
+      const indicator = createRect(40, 2, colors.primary, 0);
+      tab.appendChild(indicator);
+    }
+    frame.appendChild(tab);
+  }
+
+  return frame;
+}
+
+/** Layout/container component */
+function createGenericLayoutComponent(
+  component: ParsedComponent, variantValues: Record<string, string>,
+  variantLabel: string, colors: ColorPalette, radius: typeof defaultRadius
+): FrameNode {
+  const frame = createComponentFrame(component.name, variantLabel, 360, 200, colors, radius);
+  addComponentHeader(frame, component.name, colors, radius);
+
+  const sep = createRect(328, 1, colors.border, 0);
+  frame.appendChild(sep);
+
+  // Grid-like content area
+  const grid = createAutoLayoutFrame('Content', 'HORIZONTAL', 0, 12);
+  for (let i = 0; i < 2; i++) {
+    const col = createAutoLayoutFrame(`Col${i}`, 'VERTICAL', 12, 8);
+    col.cornerRadius = radius.md;
+    col.fills = [{ type: 'SOLID', color: colors.muted }];
+    col.resize(156, 120);
+    col.appendChild(createText(`Section ${i + 1}`, 12, 'Medium', colors.foreground));
+    col.appendChild(createText('Content area', 11, 'Regular', colors.mutedForeground));
+    grid.appendChild(col);
+  }
+  frame.appendChild(grid);
+
+  return frame;
+}
+
+/** Modal/overlay component */
+function createGenericOverlayComponent(
+  component: ParsedComponent, variantValues: Record<string, string>,
+  variantLabel: string, colors: ColorPalette, radius: typeof defaultRadius
+): FrameNode {
+  // Backdrop
+  const wrapper = createAutoLayoutFrame(`${component.name}/${variantLabel}`, 'VERTICAL', 0, 0);
+  wrapper.resize(400, 300);
+  wrapper.fills = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 }, opacity: 0.4 }];
+  wrapper.counterAxisAlignItems = 'CENTER';
+  wrapper.primaryAxisAlignItems = 'CENTER';
+
+  // Modal card
+  const modal = createAutoLayoutFrame('Modal', 'VERTICAL', 20, 16);
+  modal.cornerRadius = radius.lg;
+  modal.fills = [{ type: 'SOLID', color: colors.card }];
+  setShadow(modal, 'lg');
+  modal.resize(320, 220);
+
+  // Modal header
+  const header = createAutoLayoutFrame('Header', 'HORIZONTAL', 0, 0);
+  header.counterAxisAlignItems = 'CENTER';
+  header.appendChild(createText(component.name, 16, 'Semi Bold', colors.foreground));
+  modal.appendChild(header);
+
+  const sep = createRect(280, 1, colors.border, 0);
+  modal.appendChild(sep);
+
+  // Modal body
+  modal.appendChild(createText('Modal content area', 13, 'Regular', colors.mutedForeground));
+
+  // Modal footer
+  const footer = createAutoLayoutFrame('Footer', 'HORIZONTAL', 0, 8);
+  const confirmBtn = createAutoLayoutFrame('Confirm', 'HORIZONTAL', 0, 0);
+  confirmBtn.paddingLeft = 16;
+  confirmBtn.paddingRight = 16;
+  confirmBtn.paddingTop = 6;
+  confirmBtn.paddingBottom = 6;
+  confirmBtn.cornerRadius = radius.md;
+  confirmBtn.fills = [{ type: 'SOLID', color: colors.primary }];
+  confirmBtn.appendChild(createText('Confirm', 12, 'Medium', colors.primaryForeground));
+  footer.appendChild(confirmBtn);
+
+  const cancelBtn = createAutoLayoutFrame('Cancel', 'HORIZONTAL', 0, 0);
+  cancelBtn.paddingLeft = 16;
+  cancelBtn.paddingRight = 16;
+  cancelBtn.paddingTop = 6;
+  cancelBtn.paddingBottom = 6;
+  cancelBtn.cornerRadius = radius.md;
+  setStroke(cancelBtn, colors.border);
+  cancelBtn.appendChild(createText('Cancel', 12, 'Medium', colors.foreground));
+  footer.appendChild(cancelBtn);
+  modal.appendChild(footer);
+
+  wrapper.appendChild(modal);
+  return wrapper;
+}
+
+/** Fallback card renderer for unrecognized categories */
+function createGenericCardComponent(
+  component: ParsedComponent, variantValues: Record<string, string>,
+  variantLabel: string, colors: ColorPalette, radius: typeof defaultRadius
+): FrameNode {
+  const frame = createComponentFrame(component.name, variantLabel, 300, 160, colors, radius);
+  addComponentHeader(frame, component.name, colors, radius);
+
+  const sep = createRect(268, 1, colors.border, 0);
+  frame.appendChild(sep);
+
+  frame.appendChild(createText('Component content', 13, 'Regular', colors.mutedForeground));
+
+  // Show variant values as property list
+  for (const [key, val] of Object.entries(variantValues)) {
+    const row = createAutoLayoutFrame(key, 'HORIZONTAL', 0, 6);
+    row.appendChild(createText(key + ':', 11, 'Medium', colors.mutedForeground));
+    row.appendChild(createText(val, 11, 'Regular', colors.foreground));
+    frame.appendChild(row);
+  }
 
   return frame;
 }
