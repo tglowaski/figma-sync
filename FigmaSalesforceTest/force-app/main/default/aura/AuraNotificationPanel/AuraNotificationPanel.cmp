@@ -1,0 +1,21 @@
+<aura:component>
+    <aura:attribute name="severity" type="String" default="info" description="Notification severity: info, warning, error, success"/>
+    <aura:attribute name="title" type="String" description="Notification title"/>
+    <aura:attribute name="message" type="String" description="Notification message body"/>
+    <aura:attribute name="dismissible" type="Boolean" default="true" description="Whether the notification can be dismissed"/>
+
+    <div class="slds-notify_container slds-is-relative">
+        <div class="{!'slds-notify slds-notify_toast slds-theme_' + v.severity}" role="status">
+            <span class="slds-assistive-text">{!v.severity}</span>
+            <div class="slds-notify__content">
+                <h2 class="slds-text-heading_small">{!v.title}</h2>
+                <p class="slds-m-top_xx-small">{!v.message}</p>
+            </div>
+            <aura:if isTrue="{!v.dismissible}">
+                <div class="slds-notify__close">
+                    <lightning:button variant="bare-inverse" label="Close" onclick="{!c.handleDismiss}"/>
+                </div>
+            </aura:if>
+        </div>
+    </div>
+</aura:component>

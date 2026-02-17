@@ -1,0 +1,22 @@
+<template>
+    <div class={cardClass}>
+        <div class="slds-card__header slds-grid">
+            <div class="slds-media slds-media_center slds-has-flexi-truncate">
+                <div class="slds-media__figure">
+                    <lightning-icon icon-name="standard:account" size="small"></lightning-icon>
+                </div>
+                <div class="slds-media__body">
+                    <h2 class="slds-card__header-title slds-truncate">{title}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="slds-card__body slds-card__body_inner">
+            <slot></slot>
+        </div>
+        <template lwc:if={showFooter}>
+            <div class="slds-card__footer slds-m-bottom_small">
+                <lightning-button label="Action" variant="brand" onclick={handleAction}></lightning-button>
+            </div>
+        </template>
+    </div>
+</template>

@@ -1,0 +1,43 @@
+<template>
+    <div class={formClass}>
+        <div class="slds-form-element slds-m-bottom_small">
+            <lightning-input
+                label="Name"
+                type="text"
+                required={required}
+                read-only={isReadOnly}
+            ></lightning-input>
+        </div>
+        <div class="slds-form-element slds-m-bottom_small">
+            <lightning-input
+                label="Email"
+                type="email"
+                required={required}
+                read-only={isReadOnly}
+            ></lightning-input>
+        </div>
+        <div class="slds-form-element slds-m-bottom_small">
+            <lightning-combobox
+                label="Category"
+                placeholder="Select a category"
+                options={categoryOptions}
+                disabled={isReadOnly}
+            ></lightning-combobox>
+        </div>
+        <div class="slds-form-element slds-m-bottom_small">
+            <lightning-textarea
+                label="Description"
+                max-length="500"
+                read-only={isReadOnly}
+            ></lightning-textarea>
+        </div>
+        <div class="slds-form-element">
+            <lightning-button
+                label="Save"
+                variant="brand"
+                onclick={handleSubmit}
+                disabled={isReadOnly}
+            ></lightning-button>
+        </div>
+    </div>
+</template>

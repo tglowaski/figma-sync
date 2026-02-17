@@ -423,6 +423,55 @@ export function generateWireframeName(filePath: string, state?: string): string 
   return name;
 }
 
+// ============================================
+// SALESFORCE CLASSIFICATION RULES
+// ============================================
+
+/**
+ * Check if an LWC component should be included for generation
+ */
+export function shouldIncludeLwcComponent(name: string, jsContent: string): boolean {
+  // Exclude test files
+  if (name.endsWith('Test') || name.endsWith('Mock') || name.includes('__tests__')) {
+    return false;
+  }
+
+  // Must extend LightningElement
+  if (!jsContent.includes('LightningElement')) {
+    return false;
+  }
+
+  // Skip very large files (likely complex page-level components)
+  const lineCount = jsContent.split('\n').length;
+  if (lineCount > 500) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Check if an Aura component should be included for generation
+ */
+export function shouldIncludeAuraComponent(name: string, cmpContent: string): boolean {
+  // Must have <aura:component> root
+  if (!cmpContent.includes('<aura:component')) {
+    return false;
+  }
+
+  // Exclude abstract components
+  if (cmpContent.includes('abstract="true"')) {
+    return false;
+  }
+
+  // Exclude test components
+  if (name.endsWith('Test') || name.endsWith('Mock')) {
+    return false;
+  }
+
+  return true;
+}
+
 /**
  * Extract component name from file content
  */

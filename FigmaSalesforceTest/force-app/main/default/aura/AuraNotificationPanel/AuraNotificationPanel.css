@@ -1,0 +1,7 @@
+.THIS {
+    position: relative;
+}
+
+.THIS .slds-notify_toast {
+    min-width: 480px;
+}

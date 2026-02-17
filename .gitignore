@@ -20,3 +20,6 @@ npm-debug.log*
 
 # Local config (for project-specific overrides)
 config.local.json
+
+# Generated files (build-time artifacts, keep .gitkeep)
+src/generated/*.ts

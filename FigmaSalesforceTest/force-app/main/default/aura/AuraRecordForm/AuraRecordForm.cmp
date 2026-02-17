@@ -1,0 +1,36 @@
+<aura:component>
+    <aura:attribute name="mode" type="String" default="view" description="Form mode: view, edit, or create"/>
+    <aura:attribute name="density" type="String" default="comfy" description="Form density: comfy or compact"/>
+    <aura:attribute name="columns" type="Integer" default="2" description="Number of form columns"/>
+    <aura:attribute name="recordId" type="String" description="The record ID to display"/>
+
+    <div class="{!'slds-form slds-form_' + v.density}">
+        <div class="slds-grid slds-wrap">
+            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-p-horizontal_small">
+                <lightning:input
+                    label="First Name"
+                    value="{!v.firstName}"
+                    readonly="{!v.mode == 'view'}"
+                />
+            </div>
+            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-p-horizontal_small">
+                <lightning:input
+                    label="Last Name"
+                    value="{!v.lastName}"
+                    readonly="{!v.mode == 'view'}"
+                />
+            </div>
+            <div class="slds-col slds-size_1-of-1 slds-p-horizontal_small">
+                <lightning:textarea
+                    label="Description"
+                    value="{!v.description}"
+                    readonly="{!v.mode == 'view'}"
+                />
+            </div>
+        </div>
+        <div class="slds-m-top_medium slds-p-horizontal_small">
+            <lightning:button label="Save" variant="brand" onclick="{!c.handleSave}"/>
+            <lightning:button label="Cancel" variant="neutral" onclick="{!c.handleCancel}"/>
+        </div>
+    </div>
+</aura:component>

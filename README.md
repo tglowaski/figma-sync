@@ -1,12 +1,13 @@
 # Figma Sync
 
-A reusable Figma plugin framework that automatically imports Next.js/React codebases into Figma with design tokens, components, and wireframes.
+A reusable Figma plugin framework that automatically imports Next.js/React and Salesforce Lightning codebases into Figma with design tokens, components, and wireframes.
 
 ## Features
 
 - **Design Tokens**: Automatically parse CSS variables and create Figma variables with light/dark mode support
 - **Component Library**: Generate a comprehensive UI component library (buttons, inputs, cards, etc.)
 - **Page Wireframes**: Create full-page wireframe designs with navigation, forms, tables, and more
+- **Salesforce Support**: Import SLDS design tokens, parse LWC and Aura components, generate SLDS base components
 - **Configuration-Driven**: Easily customize for any project via JSON configuration
 - **Generic Mock Data**: Intelligent mock data generation based on column headers
 
@@ -42,6 +43,120 @@ npm run build
    - **Create Variables & Styles**: Parse tokens and create Figma variables
    - **Create Component Library**: Generate UI components
    - **Create Page Wireframes**: Generate full page designs
+
+## Salesforce Lightning Support
+
+The plugin supports Salesforce projects alongside React/Next.js. It extracts SLDS design tokens, parses custom LWC and Aura components, and generates SLDS base components in Figma.
+
+### How It Works
+
+Figma plugins run sandboxed with no filesystem access. A **prebuild script** runs at build time to read your Salesforce source files and embed them into the plugin bundle:
+
+```
+Build Time (Node.js):                    Runtime (Figma sandbox):
+  prebuild-salesforce.ts                   main.ts
+  ├── Reads SLDS CSS from npm package      ├── Parses embedded SLDS tokens
+  ├── Scans force-app/.../lwc/             ├── Parses LWC @api → variants
+  ├── Scans force-app/.../aura/            ├── Parses Aura attributes → variants
+  └── Writes src/generated/*.ts            ├── Collects lightning-* base refs
+                                           └── Generates Figma components
+```
+
+### Quick Start (Salesforce)
+
+```bash
+npm install
+
+# Build for Salesforce (prebuild + bundle)
+npm run build:salesforce:dev
+```
+
+The prebuild script automatically detects your Salesforce DX project if it's a sibling directory with a `sfdx-project.json` file. It uses the standard SFDX folder structure (`force-app/main/default/lwc/` and `force-app/main/default/aura/`) — no configuration required.
+
+### What Gets Generated
+
+**Variables (SLDS Design Tokens):**
+- Color palette with light/dark modes (Salesforce brand blue, success green, error red, etc.)
+- SLDS spacing scale (xxx-small through xxx-large)
+- Border radius values
+- Typography scale (Salesforce font sizes)
+- Component sizes
+
+**Components:**
+- Custom LWC components with `@api` properties extracted as variant combinations
+- Custom Aura components with `<aura:attribute>` extracted as variants
+- SLDS base components (`lightning-button`, `lightning-input`, `lightning-card`, etc.) — only generated for components actually referenced by your custom code
+
+**Not generated:** Wireframes are skipped in Salesforce mode (React-only feature).
+
+### Salesforce Build Scripts
+
+```bash
+npm run prebuild:salesforce     # Just regenerate src/generated/ from Salesforce sources
+npm run build:salesforce        # Full production build (prebuild + minified bundle)
+npm run build:salesforce:dev    # Development build (prebuild + sourcemaps)
+```
+
+### Custom Configuration (Optional)
+
+Auto-detection works for standard SFDX layouts. For non-standard setups, create `src/config/project.config.json`:
+
+```json
+{
+  "salesforce": {
+    "projectPath": "../MyOtherSalesforceProject",
+    "packageDirectory": "force-app/main/default",
+    "includeAura": true,
+    "excludeComponents": ["internalDebugPanel"]
+  }
+}
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `projectPath` | Auto-detected sibling | Path to the SFDX project root |
+| `packageDirectory` | `force-app/main/default` | Package directory within the project |
+| `includeAura` | `true` | Whether to include Aura components |
+| `excludeComponents` | `[]` | Component names to exclude from generation |
+
+### Switching Between React and Salesforce
+
+The framework mode is set in `src/main.ts`:
+
+```typescript
+const USER_CONFIG: Partial<PluginConfig> = {
+  framework: 'salesforce'  // or 'react' (default)
+};
+```
+
+Both `npm run build` (React) and `npm run build:salesforce` (Salesforce) work independently — existing React functionality is unchanged.
+
+### Supported SLDS Base Components
+
+The following base components are recognized when referenced by your custom LWC/Aura code:
+
+| Component | Variants |
+|-----------|----------|
+| `lightning-button` | neutral, brand, destructive, inverse, success × small, medium |
+| `lightning-button-icon` | bare, container, brand, border, border-filled × 5 sizes |
+| `lightning-input` | text, number, email, password, search, tel, checkbox, toggle × 4 label variants |
+| `lightning-card` | base, narrow |
+| `lightning-badge` | default, inverse, lightest, success, warning, error |
+| `lightning-icon` | 5 sizes × default, inverse, warning, error, success |
+| `lightning-datatable` | comfy, compact |
+| `lightning-combobox` | standard, label-hidden, label-inline, label-stacked |
+| `lightning-textarea` | standard, label-hidden |
+| `lightning-tabset` | default, scoped, vertical |
+| `lightning-modal` | small, medium, large, full |
+| `lightning-spinner` | small, medium, large × base, brand, inverse |
+| `lightning-progress-bar` | small, medium, large × base, circular |
+| `lightning-accordion` | default, multiple |
+| `lightning-checkbox-group` | standard, label-hidden |
+| `lightning-radio-group` | standard, label-hidden |
+| `lightning-breadcrumbs` | (no variants) |
+| `lightning-tree` | default, bare |
+
+---
 
 ## Configuration
 
@@ -97,11 +212,14 @@ Then press **Cmd+Opt+P** in Figma to rerun the plugin with your changes.
 ### Available Scripts
 
 ```bash
-npm run watch      # Watch mode - auto-rebuild on changes
-npm run build      # Production build (minified)
-npm run build:dev  # Development build (with sourcemaps)
-npm run typecheck  # TypeScript type checking
-npm run clean      # Remove build artifacts
+npm run watch                # Watch mode - auto-rebuild on changes
+npm run build                # Production build (minified)
+npm run build:dev            # Development build (with sourcemaps)
+npm run build:salesforce     # Salesforce production build (prebuild + minified)
+npm run build:salesforce:dev # Salesforce dev build (prebuild + sourcemaps)
+npm run prebuild:salesforce  # Regenerate src/generated/ from Salesforce sources
+npm run typecheck            # TypeScript type checking
+npm run clean                # Remove build artifacts
 ```
 
 ### Project Structure
@@ -111,19 +229,30 @@ figma-sync/
 ├── manifest.json           # Figma plugin manifest
 ├── package.json            # Build scripts and dependencies
 ├── tsconfig.json           # TypeScript configuration
+├── scripts/
+│   ├── build.mjs           # esbuild JS API wrapper
+│   └── prebuild-salesforce.ts  # Salesforce source preprocessor
 ├── src/
 │   ├── main.ts             # Entry point with configuration
 │   ├── config/
 │   │   └── schema.ts       # Configuration type definitions
 │   ├── parsers/
-│   │   ├── token-parser.ts    # CSS variable parsing
-│   │   ├── component-parser.ts
-│   │   └── page-parser.ts     # Page configurations
+│   │   ├── token-parser.ts        # CSS variable parsing (React)
+│   │   ├── slds-token-parser.ts   # SLDS token parsing (Salesforce)
+│   │   ├── component-parser.ts    # React component parsing
+│   │   ├── lwc-parser.ts          # LWC component parsing
+│   │   ├── aura-parser.ts         # Aura component parsing
+│   │   ├── slds-base-components.ts # SLDS base component catalog
+│   │   └── page-parser.ts         # Page configurations
 │   ├── generators/
 │   │   ├── variable-generator.ts   # Figma variables
-│   │   ├── component-generator.ts  # UI components
+│   │   ├── component-generator.ts  # UI components (React + SLDS)
 │   │   ├── wireframe-generator.ts  # Page wireframes
 │   │   └── section-renderers.ts    # Section renderer registry
+│   ├── generated/              # Build-time artifacts (gitignored)
+│   │   ├── slds-tokens.ts     # Embedded SLDS CSS
+│   │   ├── lwc-components.ts  # Embedded LWC source data
+│   │   └── aura-components.ts # Embedded Aura source data
 │   ├── utils/
 │   │   └── figma-helpers.ts
 │   ├── rules/

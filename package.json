@@ -4,9 +4,12 @@
   "description": "A reusable Figma plugin framework that automatically imports Next.js/React codebases into Figma with design tokens, components, and wireframes.",
   "main": "dist/code.js",
   "scripts": {
-    "build": "esbuild src/main.ts --bundle --outfile=dist/code.js --target=es2017 --format=iife --minify",
-    "build:dev": "esbuild src/main.ts --bundle --outfile=dist/code.js --target=es2017 --format=iife --sourcemap",
-    "watch": "esbuild src/main.ts --bundle --outfile=dist/code.js --target=es2017 --format=iife --watch",
+    "build": "npm run clean && node scripts/build.mjs",
+    "build:dev": "npm run clean && node scripts/build.mjs --dev",
+    "watch": "node scripts/build.mjs --watch",
+    "prebuild:salesforce": "node --experimental-strip-types scripts/prebuild-salesforce.ts",
+    "build:salesforce": "npm run clean && npm run prebuild:salesforce && node scripts/build.mjs",
+    "build:salesforce:dev": "npm run clean && npm run prebuild:salesforce && node scripts/build.mjs --dev",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
     "clean": "rm -rf dist",
@@ -27,8 +30,10 @@
   "private": true,
   "devDependencies": {
     "@figma/plugin-typings": "^1.99.0",
+    "@salesforce-ux/design-system": "^2.25.0",
     "@types/node": "^20.11.0",
     "esbuild": "^0.20.0",
+    "tsx": "^4.7.0",
     "typescript": "^5.3.0"
   },
   "engines": {

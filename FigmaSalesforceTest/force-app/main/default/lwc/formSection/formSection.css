@@ -1,0 +1,11 @@
+:host {
+    display: block;
+}
+
+.slds-form {
+    max-width: 600px;
+}
+
+.slds-form-element {
+    margin-bottom: 0.75rem;
+}

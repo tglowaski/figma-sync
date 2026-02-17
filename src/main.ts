@@ -9,9 +9,25 @@ import { extractAllTokens } from './parsers/token-parser';
 import { getPredefinedComponents } from './parsers/component-parser';
 import { getPredefinedPages } from './parsers/page-parser';
 import { generateAllVariables } from './generators/variable-generator';
-import { generateAllComponents, defaultColors, defaultRadius, ColorPalette } from './generators/component-generator';
+import {
+  generateAllComponents,
+  generateAllSalesforceComponents,
+  defaultColors,
+  defaultRadius,
+  sldsDefaultColors,
+  sldsDefaultRadius,
+  ColorPalette
+} from './generators/component-generator';
 import { generateAllWireframes } from './generators/wireframe-generator';
 import { PluginConfig, mergeConfig, DEFAULT_CONFIG } from './config/schema';
+
+// Salesforce-specific imports
+import { extractAllSldsTokens } from './parsers/slds-token-parser';
+import { parseLwcComponents, extractBaseComponentReferences } from './parsers/lwc-parser';
+import { parseAuraComponents, extractAuraBaseComponentReferences } from './parsers/aura-parser';
+import { SLDS_CSS_TOKENS } from './generated/slds-tokens';
+import { LWC_COMPONENTS } from './generated/lwc-components';
+import { AURA_COMPONENTS } from './generated/aura-components';
 
 // ============================================
 // CONFIGURATION
@@ -34,6 +50,9 @@ const USER_CONFIG: Partial<PluginConfig> = {
   //   { label: 'Projects', path: '/projects' },
   //   { label: 'Settings', path: '/settings' }
   // ]
+
+  // Salesforce mode: set framework to 'salesforce' to use SLDS tokens + LWC/Aura components
+  framework: 'salesforce'
 };
 
 // Merge with defaults
@@ -133,8 +152,12 @@ const CSS_TOKENS = `
 
 async function createVariables(): Promise<void> {
   try {
-    console.log('Parsing CSS tokens...');
-    const tokens = extractAllTokens(CSS_TOKENS);
+    const isSalesforce = PLUGIN_CONFIG.framework === 'salesforce';
+    console.log(`Parsing ${isSalesforce ? 'SLDS' : 'CSS'} tokens...`);
+
+    const tokens = isSalesforce
+      ? extractAllSldsTokens(SLDS_CSS_TOKENS)
+      : extractAllTokens(CSS_TOKENS);
 
     console.log('Generating Figma variables...');
     const result = await generateAllVariables(tokens, CONFIG.prefix);
@@ -163,15 +186,60 @@ async function createVariables(): Promise<void> {
 
 async function createComponents(): Promise<void> {
   try {
-    console.log('Generating Figma components...');
+    const isSalesforce = PLUGIN_CONFIG.framework === 'salesforce';
+    console.log(`Generating ${isSalesforce ? 'Salesforce' : 'React'} Figma components...`);
 
-    const components = await generateAllComponents({
-      colors: defaultColors,
-      radius: defaultRadius,
-      prefix: CONFIG.prefix,
-      branding: CONFIG.branding,
-      navItems: CONFIG.navItems
-    });
+    let components: ComponentNode[];
+
+    if (isSalesforce) {
+      // Parse LWC components
+      const lwcComponents = parseLwcComponents(LWC_COMPONENTS);
+      console.log(`Parsed ${lwcComponents.length} LWC components`);
+
+      // Parse Aura components (if enabled)
+      const auraComponents = PLUGIN_CONFIG.salesforce?.includeAura !== false
+        ? parseAuraComponents(AURA_COMPONENTS)
+        : [];
+      console.log(`Parsed ${auraComponents.length} Aura components`);
+
+      // Collect all base component references from custom components
+      const allCustom = [...lwcComponents, ...auraComponents];
+      const baseRefs: string[] = [];
+
+      // Extract base component references from source data
+      for (const lwcData of LWC_COMPONENTS) {
+        const refs = extractBaseComponentReferences(lwcData.htmlContent);
+        baseRefs.push(...refs);
+      }
+      for (const auraData of AURA_COMPONENTS) {
+        const refs = extractAuraBaseComponentReferences(auraData.cmpContent);
+        baseRefs.push(...refs);
+      }
+
+      // Deduplicate base refs
+      const uniqueBaseRefs = [...new Set(baseRefs)];
+      console.log(`Found ${uniqueBaseRefs.length} unique base component references`);
+
+      // Filter out excluded components
+      const excludeList = PLUGIN_CONFIG.salesforce?.excludeComponents || [];
+      const filteredCustom = allCustom.filter(c => !excludeList.includes(c.name));
+
+      components = await generateAllSalesforceComponents({
+        colors: sldsDefaultColors,
+        radius: sldsDefaultRadius,
+        prefix: CONFIG.prefix,
+        customComponents: filteredCustom,
+        baseComponentRefs: uniqueBaseRefs
+      });
+    } else {
+      components = await generateAllComponents({
+        colors: defaultColors,
+        radius: defaultRadius,
+        prefix: CONFIG.prefix,
+        branding: CONFIG.branding,
+        navItems: CONFIG.navItems
+      });
+    }
 
     // Select and focus on components
     figma.currentPage.selection = components;
@@ -222,19 +290,25 @@ async function createWireframes(): Promise<void> {
 
 async function syncAll(): Promise<void> {
   try {
+    const isSalesforce = PLUGIN_CONFIG.framework === 'salesforce';
+    const totalSteps = isSalesforce ? 2 : 3;
     figma.notify('Starting full sync...');
 
     // Step 1: Variables
-    console.log('Step 1/3: Creating variables...');
+    console.log(`Step 1/${totalSteps}: Creating variables...`);
     await createVariables();
 
     // Step 2: Components
-    console.log('Step 2/3: Creating components...');
+    console.log(`Step 2/${totalSteps}: Creating components...`);
     await createComponents();
 
-    // Step 3: Wireframes
-    console.log('Step 3/3: Creating wireframes...');
-    await createWireframes();
+    // Step 3: Wireframes (React only - not supported for Salesforce)
+    if (!isSalesforce) {
+      console.log(`Step 3/${totalSteps}: Creating wireframes...`);
+      await createWireframes();
+    } else {
+      console.log('Skipping wireframes (not supported for Salesforce framework)');
+    }
 
     figma.notify('Full sync completed!');
   } catch (error) {

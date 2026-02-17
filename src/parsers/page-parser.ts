@@ -512,7 +512,7 @@ export function getPredefinedPages(): WireframeConfig[] {
         contentSections: [
           { type: 'wizard-progress', properties: { currentStep: 1, totalSteps: 3 } },
           { type: 'header', title: 'Basic Information', subtitle: 'Enter your project details' },
-          { type: 'form-card', title: null, properties: { fields: [
+          { type: 'form-card', title: undefined, properties: { fields: [
             { name: 'Name', placeholder: 'Project name', type: 'text' },
             { name: 'Description', placeholder: 'Brief description', type: 'text' }
           ] } },
@@ -537,7 +537,7 @@ export function getPredefinedPages(): WireframeConfig[] {
         contentSections: [
           { type: 'wizard-progress', properties: { currentStep: 2, totalSteps: 3 } },
           { type: 'header', title: 'Configuration', subtitle: 'Configure your settings' },
-          { type: 'form-card', title: null, properties: { fields: [
+          { type: 'form-card', title: undefined, properties: { fields: [
             { name: 'Option 1', placeholder: 'Select option', type: 'select' },
             { name: 'Option 2', placeholder: 'Enter value', type: 'text' }
           ] } },

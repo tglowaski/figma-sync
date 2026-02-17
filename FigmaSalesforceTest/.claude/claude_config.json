@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "salesforce DX": {
+      "command": "npx",
+      "args": [
+        "@salesforce/mcp@latest",
+        "--o",
+        "figmasync",
+        "--toolsets",
+        "all"
+      ],
+      "env": {}
+    }
+  }
+}

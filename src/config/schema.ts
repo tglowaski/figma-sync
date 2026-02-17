@@ -6,6 +6,29 @@
  */
 
 /**
+ * Supported framework types
+ */
+export type FrameworkType = 'react' | 'salesforce';
+
+/**
+ * Salesforce-specific configuration
+ */
+export interface SalesforceConfig {
+  /** Path to the Salesforce DX project root */
+  projectPath?: string;
+  /** Package directory within the project (default: 'force-app/main/default') */
+  packageDirectory?: string;
+  /** SLDS version identifier for reference */
+  sldsVersion?: string;
+  /** Whether to include Aura components (default: true) */
+  includeAura?: boolean;
+  /** Path or method for SLDS CSS source (default: npm package) */
+  sldsSource?: string;
+  /** Component names to exclude from generation */
+  excludeComponents?: string[];
+}
+
+/**
  * Content section configuration for wireframe generation.
  * Sections are rendered in order by registered section renderers.
  */
@@ -80,6 +103,10 @@ export interface PluginConfig {
   navItems?: NavItem[];
   /** Custom wireframe pages (optional, uses defaults if not provided) */
   pages?: PageConfig[];
+  /** Framework type: 'react' (default) or 'salesforce' */
+  framework?: FrameworkType;
+  /** Salesforce-specific configuration (only used when framework is 'salesforce') */
+  salesforce?: SalesforceConfig;
 }
 
 /**
@@ -118,6 +145,17 @@ export const DEFAULT_PAGES: PageConfig[] = [
 /**
  * Default configuration
  */
+/**
+ * Default Salesforce configuration
+ */
+export const DEFAULT_SALESFORCE_CONFIG: SalesforceConfig = {
+  projectPath: '../FigmaSalesforceTest',
+  packageDirectory: 'force-app/main/default',
+  sldsVersion: '2.x',
+  includeAura: true,
+  excludeComponents: []
+};
+
 export const DEFAULT_CONFIG: PluginConfig = {
   name: 'MyApp',
   prefix: 'MyApp',
@@ -131,7 +169,9 @@ export const DEFAULT_CONFIG: PluginConfig = {
     description: 'Application description'
   },
   navItems: DEFAULT_NAV_ITEMS,
-  pages: DEFAULT_PAGES
+  pages: DEFAULT_PAGES,
+  framework: 'react',
+  salesforce: DEFAULT_SALESFORCE_CONFIG
 };
 
 /**
@@ -146,7 +186,12 @@ export function mergeConfig(userConfig: Partial<PluginConfig>): PluginConfig {
       ...(userConfig.branding || {})
     },
     navItems: userConfig.navItems || DEFAULT_CONFIG.navItems,
-    pages: userConfig.pages || DEFAULT_CONFIG.pages
+    pages: userConfig.pages || DEFAULT_CONFIG.pages,
+    framework: userConfig.framework || DEFAULT_CONFIG.framework,
+    salesforce: {
+      ...DEFAULT_SALESFORCE_CONFIG,
+      ...(userConfig.salesforce || {})
+    }
   };
 }
 
@@ -170,6 +215,16 @@ export function validateConfig(config: PluginConfig): string[] {
   }
   if (config.frameHeight < 320 || config.frameHeight > 4096) {
     errors.push('Config "frameHeight" must be between 320 and 4096');
+  }
+
+  if (config.framework && !['react', 'salesforce'].includes(config.framework)) {
+    errors.push('Config "framework" must be "react" or "salesforce"');
+  }
+
+  if (config.framework === 'salesforce' && config.salesforce) {
+    if (config.salesforce.excludeComponents && !Array.isArray(config.salesforce.excludeComponents)) {
+      errors.push('Config "salesforce.excludeComponents" must be an array');
+    }
   }
 
   return errors;

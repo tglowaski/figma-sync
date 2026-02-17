@@ -11,6 +11,7 @@ import {
   generateVariantMatrix,
   getPredefinedComponents
 } from '../parsers/component-parser';
+import { getReferencedBaseComponents } from '../parsers/slds-base-components';
 
 // ============================================
 // TYPES
@@ -352,10 +353,13 @@ function createAvatarComponent(
   };
 
   const dimension = sizes[size] || sizes.default;
+  const frame = createAutoLayoutFrame(`Avatar/${size}`, 'HORIZONTAL', 0, 0);
+  frame.counterAxisAlignItems = 'CENTER';
+  frame.primaryAxisAlignItems = 'CENTER';
   const avatar = createRect(dimension, dimension, colors.muted, 9999);
-  avatar.name = `Avatar/${size}`;
+  frame.appendChild(avatar);
 
-  return avatar;
+  return frame;
 }
 
 /**
@@ -565,6 +569,412 @@ export async function generateAllComponents(config: ComponentGeneratorConfig): P
   nav.y = y;
   const navComponent = figma.createComponentFromNode(nav);
   components.push(navComponent);
+
+  return components;
+}
+
+// ============================================
+// SLDS DEFAULTS
+// ============================================
+
+/**
+ * Salesforce Lightning Design System default color palette
+ */
+export const sldsDefaultColors: ColorPalette = {
+  background: { r: 1, g: 1, b: 1 },
+  foreground: { r: 0.094, g: 0.094, b: 0.094 },       // #181818
+  card: { r: 1, g: 1, b: 1 },
+  cardForeground: { r: 0.094, g: 0.094, b: 0.094 },
+  primary: { r: 0.004, g: 0.463, b: 0.827 },           // #0176D3
+  primaryForeground: { r: 1, g: 1, b: 1 },
+  secondary: { r: 0.455, g: 0.455, b: 0.455 },         // #747474
+  secondaryForeground: { r: 1, g: 1, b: 1 },
+  muted: { r: 0.953, g: 0.953, b: 0.953 },             // #F3F3F3
+  mutedForeground: { r: 0.455, g: 0.455, b: 0.455 },   // #747474
+  accent: { r: 0.18, g: 0.518, b: 0.29 },              // #2E844A
+  accentForeground: { r: 1, g: 1, b: 1 },
+  destructive: { r: 0.918, g: 0, b: 0.118 },           // #EA001E
+  destructiveForeground: { r: 1, g: 1, b: 1 },
+  border: { r: 0.788, g: 0.788, b: 0.788 },            // #C9C9C9
+  input: { r: 0.788, g: 0.788, b: 0.788 },
+  ring: { r: 0.004, g: 0.463, b: 0.827 }               // #0176D3
+};
+
+export const sldsDefaultRadius = {
+  sm: 2,
+  md: 4,
+  DEFAULT: 4,
+  lg: 6,
+  xl: 8,
+  full: 9999
+};
+
+// ============================================
+// SLDS COMPONENT CREATORS
+// ============================================
+
+/**
+ * Create an SLDS-style button component
+ */
+function createSldsButtonComponent(
+  variant: string,
+  size: string,
+  colors: ColorPalette,
+  radius: typeof defaultRadius
+): FrameNode {
+  const variantConfigs: Record<string, { bg: RGB; fg: RGB; border?: RGB }> = {
+    neutral: { bg: colors.background, fg: colors.foreground, border: colors.border },
+    brand: { bg: colors.primary, fg: colors.primaryForeground },
+    destructive: { bg: colors.destructive, fg: colors.destructiveForeground },
+    inverse: { bg: { r: 0, g: 0, b: 0 }, fg: { r: 1, g: 1, b: 1 } },
+    success: { bg: colors.accent, fg: colors.accentForeground }
+  };
+
+  const sizeConfigs: Record<string, { height: number; px: number; py: number; fontSize: number }> = {
+    small: { height: 28, px: 12, py: 4, fontSize: 12 },
+    medium: { height: 32, px: 16, py: 6, fontSize: 13 }
+  };
+
+  const config = variantConfigs[variant] || variantConfigs.neutral;
+  const sizeConfig = sizeConfigs[size] || sizeConfigs.medium;
+
+  const btn = createAutoLayoutFrame(`SLDS Button/${variant}/${size}`, 'HORIZONTAL', 0, 8);
+  btn.paddingLeft = sizeConfig.px;
+  btn.paddingRight = sizeConfig.px;
+  btn.paddingTop = sizeConfig.py;
+  btn.paddingBottom = sizeConfig.py;
+  btn.cornerRadius = radius.md;
+  btn.fills = [{ type: 'SOLID', color: config.bg }];
+  if (config.border) setStroke(btn, config.border);
+  setShadow(btn, 'xs');
+  btn.counterAxisAlignItems = 'CENTER';
+  btn.primaryAxisAlignItems = 'CENTER';
+
+  const text = createText(capitalize(variant), sizeConfig.fontSize, 'Medium', config.fg);
+  btn.appendChild(text);
+
+  return btn;
+}
+
+/**
+ * Create an SLDS-style input component
+ */
+function createSldsInputComponent(
+  type: string,
+  variant: string,
+  colors: ColorPalette,
+  radius: typeof defaultRadius
+): FrameNode {
+  const wrapper = createAutoLayoutFrame(`SLDS Input/${type}/${variant}`, 'VERTICAL', 0, 4);
+
+  // Label (hidden in label-hidden variant)
+  if (variant !== 'label-hidden') {
+    const label = createText('Field Label', 12, 'Medium', colors.foreground);
+    wrapper.appendChild(label);
+  }
+
+  const input = createAutoLayoutFrame('InputField', 'HORIZONTAL', 0, 0);
+  input.paddingLeft = 12;
+  input.paddingRight = 12;
+  input.paddingTop = 6;
+  input.paddingBottom = 6;
+  input.resize(220, 32);
+  input.cornerRadius = radius.md;
+  input.fills = [{ type: 'SOLID', color: colors.background }];
+  setStroke(input, colors.input);
+
+  const placeholders: Record<string, string> = {
+    text: 'Enter text...',
+    number: '0',
+    email: 'user@example.com',
+    password: '********',
+    search: 'Search...',
+    tel: '(555) 555-5555',
+    checkbox: '',
+    toggle: ''
+  };
+
+  if (type === 'checkbox' || type === 'toggle') {
+    // Render as checkbox/toggle
+    const box = createRect(16, 16, colors.background, type === 'toggle' ? 8 : 3);
+    setStroke(box, colors.input);
+    input.appendChild(box);
+    const checkLabel = createText('Option', 13, 'Regular', colors.foreground);
+    input.appendChild(checkLabel);
+  } else {
+    const text = createText(placeholders[type] || 'Enter...', 13, 'Regular', colors.mutedForeground);
+    input.appendChild(text);
+  }
+
+  wrapper.appendChild(input);
+  return wrapper;
+}
+
+/**
+ * Create an SLDS-style card component
+ */
+function createSldsCardComponent(
+  variant: string,
+  colors: ColorPalette,
+  radius: typeof defaultRadius
+): FrameNode {
+  const isNarrow = variant === 'narrow';
+  const card = createAutoLayoutFrame(`SLDS Card/${variant}`, 'VERTICAL', isNarrow ? 12 : 16, 12);
+  card.cornerRadius = radius.lg;
+  card.fills = [{ type: 'SOLID', color: colors.card }];
+  setStroke(card, colors.border);
+  setShadow(card, 'sm');
+  card.resize(isNarrow ? 240 : 320, 160);
+
+  // Header
+  const header = createAutoLayoutFrame('CardHeader', 'HORIZONTAL', 0, 8);
+  header.counterAxisAlignItems = 'CENTER';
+  const iconPlaceholder = createRect(20, 20, colors.primary, 4);
+  header.appendChild(iconPlaceholder);
+  const title = createText('Card Title', 14, 'Semi Bold', colors.foreground);
+  header.appendChild(title);
+  card.appendChild(header);
+
+  // Body
+  const body = createText('Card content area', 13, 'Regular', colors.mutedForeground);
+  card.appendChild(body);
+
+  return card;
+}
+
+/**
+ * Create an SLDS-style badge component
+ */
+function createSldsBadgeComponent(
+  variant: string,
+  colors: ColorPalette,
+  radius: typeof defaultRadius
+): FrameNode {
+  const variantConfigs: Record<string, { bg: RGB; fg: RGB }> = {
+    default: { bg: colors.muted, fg: colors.foreground },
+    inverse: { bg: colors.foreground, fg: colors.background },
+    lightest: { bg: colors.background, fg: colors.foreground },
+    success: { bg: { r: 0.18, g: 0.518, b: 0.29 }, fg: { r: 1, g: 1, b: 1 } },
+    warning: { bg: { r: 0.996, g: 0.576, b: 0.224 }, fg: { r: 0.094, g: 0.094, b: 0.094 } },
+    error: { bg: colors.destructive, fg: colors.destructiveForeground }
+  };
+
+  const config = variantConfigs[variant] || variantConfigs.default;
+
+  const badge = createAutoLayoutFrame(`SLDS Badge/${variant}`, 'HORIZONTAL', 0, 4);
+  badge.paddingLeft = 8;
+  badge.paddingRight = 8;
+  badge.paddingTop = 2;
+  badge.paddingBottom = 2;
+  badge.cornerRadius = radius.md;
+  badge.fills = [{ type: 'SOLID', color: config.bg }];
+
+  const text = createText(capitalize(variant), 11, 'Medium', config.fg);
+  badge.appendChild(text);
+
+  return badge;
+}
+
+/**
+ * Create an SLDS-style spinner component
+ */
+function createSldsSpinnerComponent(
+  size: string,
+  variant: string,
+  colors: ColorPalette
+): FrameNode {
+  const sizes: Record<string, number> = {
+    small: 24,
+    medium: 48,
+    large: 80
+  };
+
+  const variantColors: Record<string, RGB> = {
+    base: colors.mutedForeground,
+    brand: colors.primary,
+    inverse: { r: 1, g: 1, b: 1 }
+  };
+
+  const dimension = sizes[size] || 48;
+  const color = variantColors[variant] || colors.mutedForeground;
+
+  const frame = createAutoLayoutFrame(`SLDS Spinner/${size}/${variant}`, 'HORIZONTAL', 0, 0);
+  frame.counterAxisAlignItems = 'CENTER';
+  frame.primaryAxisAlignItems = 'CENTER';
+  const spinner = createRect(dimension, dimension, color, dimension / 2);
+  spinner.opacity = 0.65;
+  frame.appendChild(spinner);
+
+  return frame;
+}
+
+/**
+ * Create a generic SLDS component placeholder for custom components.
+ * Renders as a labeled card showing the component name, variant info, and category.
+ */
+function createGenericSldsComponent(
+  component: ParsedComponent,
+  variantValues: Record<string, string>,
+  colors: ColorPalette,
+  radius: typeof defaultRadius
+): FrameNode {
+  const variantLabel = Object.entries(variantValues)
+    .map(([k, v]) => `${k}=${v}`)
+    .join(', ') || 'default';
+
+  const frame = createAutoLayoutFrame(
+    `${component.name}/${variantLabel}`,
+    'VERTICAL', 12, 8
+  );
+  frame.cornerRadius = radius.lg;
+  frame.fills = [{ type: 'SOLID', color: colors.card }];
+  setStroke(frame, colors.border);
+  frame.resize(280, 100);
+
+  // Component name
+  const nameText = createText(component.name, 14, 'Semi Bold', colors.foreground);
+  frame.appendChild(nameText);
+
+  // Variant info
+  if (variantLabel !== 'default') {
+    const variantText = createText(variantLabel, 11, 'Regular', colors.mutedForeground);
+    frame.appendChild(variantText);
+  }
+
+  // Category badge
+  const categoryFrame = createAutoLayoutFrame('Category', 'HORIZONTAL', 0, 0);
+  categoryFrame.paddingLeft = 6;
+  categoryFrame.paddingRight = 6;
+  categoryFrame.paddingTop = 2;
+  categoryFrame.paddingBottom = 2;
+  categoryFrame.cornerRadius = radius.sm;
+  categoryFrame.fills = [{ type: 'SOLID', color: colors.muted }];
+  const categoryText = createText(component.category, 10, 'Medium', colors.mutedForeground);
+  categoryFrame.appendChild(categoryText);
+  frame.appendChild(categoryFrame);
+
+  return frame;
+}
+
+// ============================================
+// SALESFORCE COMPONENT GENERATOR
+// ============================================
+
+export interface SalesforceComponentGeneratorConfig {
+  colors: ColorPalette;
+  radius: typeof defaultRadius;
+  prefix?: string;
+  customComponents: ParsedComponent[];
+  baseComponentRefs: string[];
+}
+
+/**
+ * Generate all Salesforce components (custom + referenced base components)
+ */
+export async function generateAllSalesforceComponents(
+  config: SalesforceComponentGeneratorConfig
+): Promise<ComponentNode[]> {
+  const { colors, radius, customComponents, baseComponentRefs } = config;
+  const components: ComponentNode[] = [];
+  let x = 0;
+  let y = 0;
+
+  // Load fonts
+  await Promise.all([
+    figma.loadFontAsync({ family: 'Inter', style: 'Regular' }),
+    figma.loadFontAsync({ family: 'Inter', style: 'Medium' }),
+    figma.loadFontAsync({ family: 'Inter', style: 'Semi Bold' }),
+    figma.loadFontAsync({ family: 'Inter', style: 'Bold' })
+  ]);
+
+  // --- Generate SLDS base components (only referenced ones) ---
+  const baseComponents = getReferencedBaseComponents(baseComponentRefs);
+
+  for (const baseDef of baseComponents) {
+    const matrix = generateVariantMatrix(baseDef);
+
+    for (const combo of matrix) {
+      let frame: FrameNode;
+
+      // Route to specific SLDS creators based on component name
+      switch (baseDef.filePath) {
+        case 'lightning/button':
+          frame = createSldsButtonComponent(
+            combo.values.variant || 'neutral',
+            combo.values.size || 'medium',
+            colors, radius
+          );
+          break;
+        case 'lightning/input':
+          frame = createSldsInputComponent(
+            combo.values.type || 'text',
+            combo.values.variant || 'standard',
+            colors, radius
+          );
+          break;
+        case 'lightning/card':
+          frame = createSldsCardComponent(
+            combo.values.variant || 'base',
+            colors, radius
+          );
+          break;
+        case 'lightning/badge':
+          frame = createSldsBadgeComponent(
+            combo.values.variant || 'default',
+            colors, radius
+          );
+          break;
+        case 'lightning/spinner':
+          frame = createSldsSpinnerComponent(
+            combo.values.size || 'medium',
+            combo.values.variant || 'base',
+            colors
+          );
+          break;
+        default:
+          // Generic placeholder for other base components
+          frame = createGenericSldsComponent(baseDef, combo.values, colors, radius);
+          break;
+      }
+
+      frame.x = x;
+      frame.y = y;
+      x += 300;
+      if (x > 1200) {
+        x = 0;
+        y += 80;
+      }
+
+      const component = figma.createComponentFromNode(frame);
+      components.push(component);
+    }
+
+    // New row after each base component type
+    y += 100;
+    x = 0;
+  }
+
+  // --- Generate custom components ---
+  for (const customDef of customComponents) {
+    const matrix = generateVariantMatrix(customDef);
+
+    for (const combo of matrix) {
+      const frame = createGenericSldsComponent(customDef, combo.values, colors, radius);
+      frame.x = x;
+      frame.y = y;
+      x += 300;
+      if (x > 1200) {
+        x = 0;
+        y += 120;
+      }
+
+      const component = figma.createComponentFromNode(frame);
+      components.push(component);
+    }
+
+    y += 120;
+    x = 0;
+  }
 
   return components;
 }
