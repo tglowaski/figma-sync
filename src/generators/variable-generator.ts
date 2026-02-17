@@ -41,8 +41,15 @@ export function createColorCollection(
 ): VariableCollection {
   const collection = figma.variables.createVariableCollection(`${prefix} Colors`);
   const lightModeId = collection.modes[0].modeId;
-  collection.renameMode(lightModeId, 'Light');
-  const darkModeId = collection.addMode('Dark');
+
+  // Try to add dark mode — fails on free/Starter plans (1 mode limit)
+  let darkModeId: string | null = null;
+  try {
+    collection.renameMode(lightModeId, 'Light');
+    darkModeId = collection.addMode('Dark');
+  } catch {
+    console.log('Dark mode not available (plan limited to 1 mode), using light only');
+  }
 
   for (const [name, lightData] of Object.entries(lightColors)) {
     const variable = figma.variables.createVariable(name, collection, 'COLOR');
@@ -51,9 +58,10 @@ export function createColorCollection(
     }
     variable.setValueForMode(lightModeId, lightData.rgb);
 
-    // Use dark color if available, otherwise use light
-    const darkData = darkColors[name];
-    variable.setValueForMode(darkModeId, darkData ? darkData.rgb : lightData.rgb);
+    if (darkModeId) {
+      const darkData = darkColors[name];
+      variable.setValueForMode(darkModeId, darkData ? darkData.rgb : lightData.rgb);
+    }
   }
 
   return collection;
